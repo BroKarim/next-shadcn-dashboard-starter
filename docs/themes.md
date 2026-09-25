@@ -2,6 +2,8 @@
 
 This guide explains how to add a new theme to the application. The theme system uses CSS custom properties with `[data-theme]` selectors for easy theme switching.
 
+> **Note:** this project currently ships one brand theme (`vercel`) plus light/dark mode. This guide is the reference for adding another one.
+
 ## The Journey: Adding a New Theme
 
 When adding a new theme, follow this journey:
@@ -10,16 +12,16 @@ When adding a new theme, follow this journey:
 2. **Import theme** → Add `@import` to `src/styles/theme.css`
 3. **Register theme** → Add to `THEMES` array in `src/components/themes/theme.config.ts`
 4. **Add fonts (if needed)** → Import fonts in `src/components/themes/font.config.ts` if using custom Google Fonts
-5. **Set as default (optional)** → Update `DEFAULT_THEME` in `src/components/themes/active-theme.tsx`
+5. **Set as default (optional)** → Update `DEFAULT_THEME` in `src/components/themes/theme.config.ts`
 
 See the **Step-by-Step Guide** section below for detailed instructions.
 
 ## Quick Start: Set Your Theme as Default
 
-To make your new theme the default (so it loads automatically without the theme switcher):
+To make a theme the default (so it loads automatically without a theme switcher):
 
-1. Open `src/components/themes/active-theme.tsx`
-2. Change line 12: `const DEFAULT_THEME = 'your-theme-name';`
+1. Open `src/components/themes/theme.config.ts`
+2. Set `export const DEFAULT_THEME = 'your-theme-name';`
 3. Save and restart your dev server
 
 That's it! Your theme will now be the default for all new users.
@@ -318,10 +320,10 @@ export const fontVariables = cn(
 - You can use any Google Font available in `next/font/google`
 - Check existing fonts in `font.config.ts` before adding new ones - you might be able to reuse them
 
-**Example:** The `notebook` theme uses `Architects Daughter`:
+**Example:** the shipped `vercel` theme uses `Geist`:
 
-- Imported in `font.config.ts` as `Architects_Daughter`
-- Used in `notebook.css` as `'Architects Daughter'` (with quotes and space)
+- Imported in `font.config.ts` as `Geist` with `variable: '--font-sans'`
+- Used in `vercel.css` as `--font-sans: Geist, sans-serif;`
 
 ### Step 6: Set as Default Theme (Optional)
 
@@ -396,7 +398,7 @@ These can be omitted if not needed:
 
 ## Example: Complete Theme
 
-See `src/styles/themes/claude.css` for a complete example with all tokens defined.
+See `src/styles/themes/vercel.css` for a complete example with all tokens defined.
 
 ## Example: Minimal Theme
 
@@ -556,13 +558,10 @@ export const fontVariables = cn(
 - **Automatic application**: Font variables are automatically applied to the body element via `layout.tsx`
 - **Available fonts**: Check [Next.js Font Optimization](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) for available Google Fonts
 
-### Example: Notebook Theme
-
-The `notebook` theme uses `Architects Daughter`:
-
-**In `font.config.ts`:**
+### Example: custom font for a new theme
 
 ```typescript
+// src/components/themes/font.config.ts
 import { Architects_Daughter } from 'next/font/google';
 
 const fontArchitectsDaughter = Architects_Daughter({
@@ -572,24 +571,24 @@ const fontArchitectsDaughter = Architects_Daughter({
 });
 
 export const fontVariables = cn(
-  // ... other fonts
+  fontSans.variable,
+  fontMono.variable,
   fontArchitectsDaughter.variable
 );
 ```
 
-**In `notebook.css`:**
-
 ```css
-[data-theme='notebook'] {
+/* src/styles/themes/your-theme.css */
+[data-theme='your-theme'] {
   --font-sans: 'Architects Daughter', sans-serif;
 }
 ```
 
 ## Reference Files
 
-- **Complete theme example**: `src/styles/themes/claude.css`
+- **Shipped brand theme**: `src/styles/themes/vercel.css`
 - **Theme aggregator**: `src/styles/theme.css`
-- **Theme selector component**: `src/components/themes/theme-selector.tsx`
 - **Theme provider**: `src/components/themes/active-theme.tsx`
 - **Theme configuration** (includes default theme): `src/components/themes/theme.config.ts`
 - **Font configuration**: `src/components/themes/font.config.ts`
+- **Light/dark toggle**: `src/components/themes/theme-mode-toggle.tsx`

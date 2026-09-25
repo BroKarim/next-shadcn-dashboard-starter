@@ -1,117 +1,58 @@
 # Clerk Setup Guide
 
-This guide covers the setup and configuration of Clerk features used in this starter template.
+This project uses Clerk for authentication only: one institution, one tenant. **Clerk Organizations and Clerk Billing are not used** — access levels are application roles (`user`, `editor`, `admin`), see `docs/nav-rbac.md`.
 
-## Clerk Scopes Required
+## 1. Get API keys
 
-- **Authentication** - User sign-in/sign-up and session management
-- **Organizations** - Multi-tenant workspace management (see setup below)
-- **Billing** - Organization-level subscription management (see setup below)
+Fastest path (keyless mode, no account needed):
 
-## Clerk Organizations Setup (Workspaces & Teams)
-
-This starter kit includes multi-tenant workspace management powered by **Clerk Organizations**. To enable this feature:
-
-### Enable Organizations in Clerk Dashboard:
-
-1. Go to [Clerk Dashboard](https://dashboard.clerk.com)
-2. Navigate to **configure**
-3. Click **Organizations settings**
-4. Configure default roles if needed in the roles and permissions.
-
-### Server-Side Permission Checks:
-
-- This starter follows [Clerk's recommended patterns](https://clerk.com/blog/how-to-build-multitenant-authentication-with-clerk)
-
-### Navigation RBAC System:
-
-- Fully client-side navigation filtering using `useNav` hook
-- Supports `requireOrg`, `permission`, and `role` checks (all client-side, instant)
-- Configured in `src/config/nav-config.ts` with `access` properties
-- See `docs/nav-rbac.md` for detailed documentation
-
-### For more information, see:
-
-- [Clerk Organizations documentation](https://clerk.com/docs/organizations/overview)
-- [Multi-tenant authentication guide](https://clerk.com/blog/how-to-build-multitenant-authentication-with-clerk)
-
-## Clerk Billing Setup (Organization Subscriptions)
-
-This starter kit includes **Clerk Billing for B2B** to manage organization-level subscriptions. Plans and features are managed through the Clerk Dashboard, and the application checks access using Clerk's `has()` function.
-
-> [!WARNING]
-> Billing is currently in Beta and its APIs are experimental and may undergo breaking changes. To mitigate potential disruptions, we recommend pinning your SDK and `clerk-js` package versions.
-
-### Key Features:
-
-- Organization-level subscription management
-- Plan-based access control using `<Protect>` component
-- Feature-based authorization
-- Integrated Stripe payment processing
-- Server-side plan/feature checks using `has()` function
-
-### Billing Cost Structure:
-
-Clerk Billing costs **0.7% per transaction**, plus transaction fees which are paid directly to Stripe. Clerk Billing is **not** the same as Stripe Billing. Plans and pricing are managed directly through the Clerk Dashboard and won't sync with your existing Stripe products or plans. Clerk uses Stripe **only** for payment processing, so you don't need to set up Stripe Billing.
-
-### Setup Instructions:
-
-#### 1. Enable Billing:
-
-- Navigate to [Billing Settings](https://dashboard.clerk.com/~/billing/settings) in the Clerk Dashboard
-- Enable billing for your application
-- Choose payment gateway:
-  - **Clerk development gateway**: A shared **test** Stripe account for development instances. This allows developers to test and build Billing flows **in development** without needing to create and configure a Stripe account.
-  - **Stripe account**: Use your own Stripe account for production. **A Stripe account created for a development instance cannot be used for production**. You will need to create a separate Stripe account for your production environment.
-
-#### 2. Create Plans:
-
-- Navigate to [Plans page](https://dashboard.clerk.com/~/billing/plans) in the Clerk Dashboard
-- Select **Plans for Organizations** tab
-- Click **Add Plan** and create plans (e.g., `free`, `pro`, `team`)
-- Set pricing and billing intervals
-- Toggle **Publicly available** to show in `<PricingTable />` and `<OrganizationProfile />` components
-
-#### 3. Add Features to Plans:
-
-- You can add Features when creating a Plan, or add them later:
-  1. Navigate to the [Plans](https://dashboard.clerk.com/~/billing/plans) page
-  2. Select the Plan you'd like to add a Feature to
-  3. In the **Features** section, select **Add Feature**
-- Feature names in Clerk Dashboard should match what you check in code
-
-#### 4. Usage in Code:
-
-**Server-side checks using `has()`:**
-
-```typescript
-// Check if organization has a Plan
-const hasPremiumAccess = has({ plan: 'gold' });
-
-// Check if organization has a Feature
-const hasPremiumAccess = has({ feature: 'widgets' });
+```bash
+npx clerk@latest init
 ```
 
-The `has()` method is available on the auth object and checks if the Organization has been granted a specific type of access control (Role, Permission, Feature, or Plan) and returns a boolean value.
+It provisions a development instance and writes the keys to `.env.local`. To use your own instance, copy the keys from <https://dashboard.clerk.com> into `.env.local`:
 
-**Client-side protection using `<Protect>`:**
-
-```tsx
-<Protect
-  plan='bronze'
-  fallback={<p>Only subscribers to the Bronze plan can access this content.</p>}
->
-  <h1>Exclusive Bronze Content</h1>
-</Protect>
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
+CLERK_SECRET_KEY=sk_...
 ```
 
-Or protect by Feature:
+## 2. Redirect URLs
 
-```tsx
-<Protect
-  feature='premium_access'
-  fallback={<p>Only subscribers with the Premium Access feature can access this content.</p>}
->
-  <h1>Exclusive Premium Content</h1>
-</Protect>
+```env
+NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/dashboard/overview"
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/dashboard/overview"
 ```
+
+- The `*_FALLBACK_REDIRECT_URL` values send users back to the page they originally requested; swap to `*_FORCE_REDIRECT_URL` to always land on a fixed page.
+- `/dashboard` is protected in `src/app/dashboard/layout.tsx` with `await auth.protect()`.
+
+## 3. Application roles
+
+Roles are stored in each user's `publicMetadata.role` and must only be written server-side (Clerk Dashboard or a protected server action).
+
+| Value    | Access                          |
+| -------- | ------------------------------- |
+| `user`   | Read-only (default)             |
+| `editor` | Edit operational finding data   |
+| `admin`  | Full access, user & role management |
+
+Set it in the Clerk Dashboard under **Users → (user) → Metadata → Public**, e.g.:
+
+```json
+{ "role": "admin" }
+```
+
+The client reads the role for navigation visibility (`src/hooks/use-nav.ts`); server actions must re-check it.
+
+## 4. Webhooks (optional)
+
+Set `WEBHOOK_SECRET` in `.env.local` when you add a webhook endpoint (for example to mirror user changes into the app store). Create the endpoint in the Clerk Dashboard under **Configure → Webhooks**.
+
+## Reference
+
+- [Clerk Next.js SDK](https://clerk.com/docs/references/nextjs)
+- [Clerk metadata](https://clerk.com/docs/users/metadata)
+- [Navigation access control](./nav-rbac.md)

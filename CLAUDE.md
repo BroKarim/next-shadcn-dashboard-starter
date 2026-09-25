@@ -1,14 +1,14 @@
 # CLAUDE.md
 
-This is a Next.js 16 + shadcn/ui admin dashboard starter kit.
+This is a Next.js 16 + shadcn/ui internal dashboard (BPK audit-finding follow-up for USK). Clerk authentication is single tenant with application roles; Clerk Organizations/Billing, Sentry and the template demo features have been removed — see `task_plan.md` for scope.
 
 ## Key References
 
 - **[AGENTS.md](./AGENTS.md)** — Full project overview, tech stack, structure, conventions, data fetching patterns, deployment
 - **[docs/forms.md](./docs/forms.md)** — Form system: TanStack Form + Zod, composable fields, validation, multi-step, sheet/dialog forms
 - **[docs/themes.md](./docs/themes.md)** — Theme system: OKLCH colors, adding themes, font config
-- **[docs/nav-rbac.md](./docs/nav-rbac.md)** — Navigation RBAC: access control, Clerk integration
-- **[docs/clerk_setup.md](./docs/clerk_setup.md)** — Clerk auth setup: organizations, billing, environment variables
+- **[docs/nav-rbac.md](./docs/nav-rbac.md)** — Navigation access control by application role (user/editor/admin)
+- **[docs/clerk_setup.md](./docs/clerk_setup.md)** — Clerk auth setup: keys, redirect URLs, roles, webhooks
 - **[docs/deployment.md](./docs/deployment.md)** — Deployment: Vercel, production environment variables, Docker
 
 ## Critical Conventions

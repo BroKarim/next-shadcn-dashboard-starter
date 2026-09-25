@@ -17,9 +17,6 @@ Ensure these are set in your deployment platform:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 - All `NEXT_PUBLIC_*` variables for client-side access
-- `SENTRY_*` variables if using error tracking
-
-Sentry source maps are uploaded automatically in CI.
 
 ## Docker
 
