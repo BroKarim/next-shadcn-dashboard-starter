@@ -6,7 +6,7 @@ export const usersInfoContent: InfobarContent = {
     {
       title: 'Overview',
       description:
-        'This page demonstrates client-side data fetching with React Query combined with nuqs URL search params — as an alternative to the Products page which uses server-side RSC fetching. Both patterns use the same DataTable, useDataTable hook, and nuqs URL state.',
+        'This page demonstrates client-side data fetching with React Query combined with nuqs URL search params. The DataTable, useDataTable hook, and nuqs URL state are shared with the rest of the dashboard.',
       links: [
         {
           title: 'TanStack Query SSR Docs',
@@ -30,12 +30,6 @@ export const usersInfoContent: InfobarContent = {
           url: 'https://nuqs.47ng.com'
         }
       ]
-    },
-    {
-      title: 'Products vs Users Pattern',
-      description:
-        'Products: searchParams → RSC fetch → pass data as props to client table. Users: searchParams → server prefetch → HydrationBoundary → client useSuspenseQuery. The Users pattern enables background refetching, cache sharing across components, and optimistic mutations.',
-      links: []
     }
   ]
 };

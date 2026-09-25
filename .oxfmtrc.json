@@ -15,12 +15,15 @@
     "out/**",
     "build/**",
     "node_modules/**",
-    "scripts/**",
     "pnpm-lock.yaml",
     "**/*.md",
     "**/*.mdc",
     "**/*.mdx",
     "**/*.yml",
-    "**/*.yaml"
+    "**/*.yaml",
+    ".agents/**",
+    ".claude/**",
+    ".augment/**",
+    ".commandcode/**"
   ]
 }

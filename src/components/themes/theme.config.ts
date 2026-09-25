@@ -1,48 +1,12 @@
 /**
- * Default theme that loads when no user preference is set
- * Change this value to set a different default theme
+ * Single brand theme. Users can still switch light/dark with the mode toggle.
+ * Change `DEFAULT_THEME`/`THEMES` when adding more brand themes.
  */
 export const DEFAULT_THEME = 'vercel';
 
 export const THEMES = [
   {
-    name: 'Claude',
-    value: 'claude'
-  },
-  {
-    name: 'Discord',
-    value: 'discord'
-  },
-  {
-    name: 'Supabase',
-    value: 'supabase'
-  },
-  {
     name: 'Vercel',
     value: 'vercel'
-  },
-  {
-    name: 'Mono',
-    value: 'mono'
-  },
-  {
-    name: 'Notebook',
-    value: 'notebook'
-  },
-  {
-    name: 'Light Green',
-    value: 'light-green'
-  },
-  {
-    name: 'Zen',
-    value: 'zen'
-  },
-  {
-    name: 'Astro Vista',
-    value: 'astro-vista'
-  },
-  {
-    name: 'WhatsApp',
-    value: 'whatsapp'
   }
 ];

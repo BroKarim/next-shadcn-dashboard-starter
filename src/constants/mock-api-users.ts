@@ -1,5 +1,7 @@
 ////////////////////////////////////////////////////////////////////////////////
-// 🛑 Nothing in here has anything to do with Nextjs, it's just a fake database
+// 🛑 TEMPORARY fake data store for the Users page — not production data.
+// Replace with the application user store (Clerk metadata or the agreed data
+// source) when admin role management is implemented.
 ////////////////////////////////////////////////////////////////////////////////
 
 import { faker } from '@faker-js/faker';

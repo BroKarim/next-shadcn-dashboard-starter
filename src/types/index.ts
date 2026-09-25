@@ -1,11 +1,11 @@
 import { Icons } from '@/components/icons';
 
+/** Application role. `user` is read-only, `editor`/`admin` may mutate. */
+export type AppRole = 'user' | 'editor' | 'admin';
+
+/** Minimum application role required to see a navigation item. */
 export interface PermissionCheck {
-  permission?: string;
-  plan?: string;
-  feature?: string;
-  role?: string;
-  requireOrg?: boolean;
+  role?: AppRole;
 }
 
 export interface NavItem {
