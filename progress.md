@@ -34,3 +34,14 @@
 - Verifikasi: `bun run typecheck` lulus, `bun run lint` 0 warning, `bun run build` lulus (route tersisa: `/`, `/api/users`, `/dashboard`, `/dashboard/overview`, `/dashboard/profile`, `/dashboard/users`, `/sign-in`, `/sign-up`), smoke test `next start`: `/` → 307 `/sign-in`, `/sign-in` → 200, `/dashboard/overview` → 307 `/sign-in?redirect_url=…`, `/api/users` → 200.
 - Catatan: `task_plan.md` di disk berubah di tengah sesi (dari rencana cleanup 12 fase menjadi rencana UI 6 fase + brief overview). Status fase sengaja TIDAK ditulis ke file tersebut agar tidak menimpa pekerjaan sesi lain; ringkasan hasil ada di sini dan di `findings.md`.
 - Pekerjaan UI BPK (model data mock, overview, drawer, detail, admin actions) belum dikerjakan sesuai instruksi "jangan ada UI yang diubah".
+
+## 2026-09-25 — Koreksi: tiga fitur template dipertahankan
+
+- Atas permintaan pengguna, tiga hal yang sebelumnya ikut dihapus dipulihkan di branch `chore/template-cleanup`:
+  - halaman Product (`src/app/dashboard/product`, `src/features/products`, `src/app/api/products`, `src/constants/mock-api.ts`, item nav + breadcrumb + image host `api.slingacademy.com`);
+  - command search di header (`src/components/kbar/*`, `src/components/search-input.tsx`, dependency `kbar`, provider `KBar` di `app/dashboard/layout.tsx`);
+  - `ThemeSelector` di header beserta 10 theme bawaan (`src/styles/themes/*.css`, `theme.config.ts`, `font.config.ts` 16 font, `theme.css`).
+- `src/config/infoconfig.ts` dipulihkan hanya untuk konten Product; konten Workspaces/Team/Billing tetap terhapus tanpa consumer.
+- Sisanya tetap seperti hasil cleanup (Sentry, AI chat, kanban, chat, notifications, Organizations/Billing, CtaGithub, orphan deps, `scripts/cleanup.js`).
+- Dokumentasi disesuaikan kembali: README, AGENTS.md (theming 10 theme, struktur route/feature/kbar), `docs/themes.md` dikembalikan ke versi multi-theme.
+- Verifikasi ulang: `bun run typecheck` lulus, `bun run lint` 0 warning, `bun run build` lulus (route `product`, `api/products` kembali ada), smoke test: `/sign-in` 200, `/dashboard/product` 307 ke sign-in, `/api/products` 200.

@@ -7,7 +7,7 @@ Scope decisions, domain rules, and the phased build plan live in:
 - [`context.md`](./context.md) — product context and agreed decisions
 - [`task_plan.md`](./task_plan.md) — phased plan and current status
 
-**Current state:** the starter template has been simplified into a single-tenant base (Clerk auth with application roles, one brand theme, no Sentry/AI chat/kanban/messaging/product demo/Organizations/Billing). The BPK finding screens themselves are not built yet — see `task_plan.md` phases 8-11.
+**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo page, the Cmd+K command palette (header search) and the multi-theme selector are still available; remove them later if the BPK workflow does not need them. The BPK finding screens themselves are not built yet — see `task_plan.md` phases 8-11.
 
 ## Stack
 
@@ -56,15 +56,15 @@ Required env: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`. Option
 ```plaintext
 src/
 ├── app/                     # App Router
-│   ├── dashboard/           # Protected shell (overview, users, profile)
+│   ├── dashboard/           # Protected shell (overview, product, users, profile)
 │   ├── sign-in/ sign-up/    # Clerk auth pages
-│   └── api/                 # Route handlers
-├── components/              # ui/ primitives, layout/, forms/ fields, themes/
+│   └── api/                 # Route handlers (users, products)
+├── components/              # ui/ primitives, layout/, forms/ fields, themes/, kbar/
 ├── features/                # Feature modules: api (types → service → queries) + components
-├── config/                  # nav-config, data-table config
+├── config/                  # nav-config, data-table, infobar content
 ├── hooks/                   # use-data-table, use-nav, …
 ├── lib/                     # query-client, form, searchparams, utils
-└── styles/                  # globals.css, theme.css, themes/vercel.css
+└── styles/                  # globals.css, theme.css, themes/*.css
 ```
 
 Conventions and patterns for adding pages, features, tables, and forms are documented in [`AGENTS.md`](./AGENTS.md) (also readable by AI coding agents):

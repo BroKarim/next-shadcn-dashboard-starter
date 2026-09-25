@@ -62,7 +62,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 - Recharts for analytics/charts
 - Service layer per feature (`api/types.ts` → `api/service.ts` → `api/queries.ts`)
 - Route handlers at `src/app/api/` (for Route Handler or BFF patterns)
-- Mock data in `src/constants/mock-api-users.ts` (temporary — replaced by the real user/role store; never import it from components)
+- Mock data in `src/constants/mock-api.ts` (product demo) and `src/constants/mock-api-users.ts` (temporary user store — replace with the real source); never import them from components
 - API client utility in `src/lib/api-client.ts` (for fetch-based patterns)
 
 ### Development Tools
@@ -81,6 +81,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 ├── app/                    # Next.js App Router
 │   ├── dashboard/         # Protected dashboard shell (Clerk auth.protect())
 │   │   ├── overview/      # Dashboard analytics (parallel routes)
+│   │   ├── product/       # Product CRUD demo (React Query + nuqs)
 │   │   ├── users/         # User/role management (React Query + nuqs)
 │   │   └── profile/       # Clerk user profile
 │   ├── api/               # Route handlers (users)
@@ -95,12 +96,14 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 │   ├── ui/                # shadcn/ui components (Base UI primitives)
 │   ├── layout/            # Layout components (sidebar, header, providers)
 │   ├── forms/             # Field components (shadcn TanStack Form anatomy)
-│   ├── themes/            # Theme provider + mode toggle
+│   ├── themes/            # Theme provider, selector + mode toggle
+│   ├── kbar/              # Cmd+K command palette
 │   ├── icons.tsx          # Icon registry
 │   └── ...
 │
 ├── features/              # Feature-based modules
 │   ├── overview/          # Dashboard analytics (cards, charts)
+│   ├── products/          # Product demo: api layer, table, form
 │   ├── users/             # User management (React Query + nuqs)
 │   │   ├── api/           # types.ts → service.ts → queries.ts
 │   │   ├── components/    # Listing, table, form sheet
@@ -222,12 +225,17 @@ Configured in `.oxlintrc.json`. Notable rules: `no-console` warns (allows `warn`
 
 ## Theming System
 
-The project ships one brand theme (`vercel`) plus light/dark mode:
+The project ships 10 built-in themes plus light/dark mode:
 
-- CSS tokens: `src/styles/themes/vercel.css` (`[data-theme='vercel']`, OKLCH)
-- Theme registry: `src/components/themes/theme.config.ts`
-- Fonts: `src/components/themes/font.config.ts` (Geist / Geist Mono via `next/font`)
+- `vercel` (default), `claude`, `discord`, `supabase`, `mono`, `notebook`, `light-green`, `zen`, `astro-vista`, `whatsapp`
+
+### Theme Files
+
+- CSS files: `src/styles/themes/{theme-name}.css` (`[data-theme='…']`, OKLCH tokens)
+- Theme registry: `src/components/themes/theme.config.ts` (`DEFAULT_THEME`, `THEMES`)
+- Fonts: `src/components/themes/font.config.ts` (`next/font` variables per theme)
 - Active theme provider: `src/components/themes/active-theme.tsx`
+- Theme selector: `src/components/themes/theme-selector.tsx` (header)
 - Light/dark toggle: `src/components/themes/theme-mode-toggle.tsx`
 
 ### Theme Files

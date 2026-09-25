@@ -3,8 +3,7 @@ import { NavGroup } from '@/types';
 /**
  * Navigation configuration
  *
- * This configuration is used for both the sidebar navigation and Cmd+K bar.
- * Items are organized into groups, each rendered with a SidebarGroupLabel.
+ * This configuration is used for both the sidebar navigation and the Cmd+K bar.
  *
  * Access control:
  * An item can carry an `access` property with the minimum application role
@@ -24,6 +23,14 @@ export const navGroups: NavGroup[] = [
         icon: 'dashboard',
         isActive: false,
         shortcut: ['d', 'd'],
+        items: []
+      },
+      {
+        title: 'Product',
+        url: '/dashboard/product',
+        icon: 'product',
+        shortcut: ['p', 'p'],
+        isActive: false,
         items: []
       },
       {
