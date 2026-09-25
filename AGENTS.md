@@ -80,7 +80,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 /src
 ├── app/                    # Next.js App Router
 │   ├── dashboard/         # Protected dashboard shell (Clerk auth.protect())
-│   │   ├── overview/      # Dashboard analytics (parallel routes)
+│   │   ├── overview/      # Dashboard Temuan BPK (KPI, chart, filter, drawer)
 │   │   ├── product/       # Product CRUD demo (React Query + nuqs)
 │   │   ├── users/         # User/role management (React Query + nuqs)
 │   │   └── profile/       # Clerk user profile
@@ -102,7 +102,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 │   └── ...
 │
 ├── features/              # Feature-based modules
-│   ├── overview/          # Dashboard analytics (cards, charts)
+│   ├── overview/          # BPK finding dashboard (dummy data + pure helpers)
 │   ├── products/          # Product demo: api layer, table, form
 │   ├── users/             # User management (React Query + nuqs)
 │   │   ├── api/           # types.ts → service.ts → queries.ts
@@ -452,6 +452,8 @@ Tables use TanStack Table with React Query:
 - Column definitions in `features/*/components/*-tables/columns.tsx`
 - Table component in `src/components/ui/table/data-table.tsx`
 - Column pinning via `initialState.columnPinning` in `useDataTable`
+
+Exception: the BPK overview table (`features/overview/components/bpk-overview.tsx`) has no backend yet, so it drives `useReactTable` directly from local dummy data (`bpk-overview-data.ts`, pure helpers) with controlled `columnFilters` and no React Query. Migrate it to the service/query layer when the finding API exists. Remember that TanStack's `filterFn: 'auto'` on a `number` column resolves to `inNumberRange` (`[min, max]` tuple) — number columns filtered by a `Select`/`Input` string need an explicit `filterFn`.
 
 ---
 

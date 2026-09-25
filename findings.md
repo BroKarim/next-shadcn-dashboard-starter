@@ -55,3 +55,13 @@
 - Branding metadata masih template: `src/app/layout.tsx` memakai judul "Shadcn Dashboard - Next.js Admin Dashboard Template" dan `src/app/dashboard/layout.tsx` "Next Shadcn Dashboard Starter". Menunggu keputusan penamaan produk.
 - `src/components/icons.tsx` masih memuat ikon template (kanban, chat, product, dsb.). Registry dipertahankan utuh; pruning ikon belum dilakukan dan sebaiknya mengikuti komponen yang benar-benar dipakai.
 - Environment: `.env.local` masih berisi kunci Clerk dummy (`pk_test_REPLACE_ME`) sehingga sign-in nyata belum bisa diuji end-to-end; jalankan `npx clerk@latest init` untuk instance dev.
+
+## BPK overview UI (branch `feat/bpk-overview-ui`)
+
+- `filterFn: 'auto'` TanStack pada kolom bertipe `number` TIDAK berarti "cocokkan nilai" — `getAutoFilterFn()` memilih `inNumberRange` yang mengharapkan tuple `[min, max]`, sehingga filter memakai nilai string dari `Select` selalu menghasilkan 0 baris. Setiap kolom numerik yang difilter dengan `Select`/`Input` harus punya `filterFn` eksplisit (dipakai di kolom `tahun`).
+- Popup `Drawer` base-ui tidak pernah ter-mount di jsdom meskipun `open=true` (mounting via layout transition internal), jadi perilaku drawer harus diverifikasi di browser sungguhan. jsdom tetap berguna untuk helper murni dan markup non-portal.
+- React 19 + jsdom: menyetel `input.value` lewat setter native lalu `dispatchEvent(new Event('input'))` tidak memicu `onChange` (value tracker), sehingga uji filter headless tidak dapat diandalkan — verifikasi input sebaiknya di browser.
+- `React.useMemo` untuk `useReactTable` dan kolom: kolom didefinisikan dalam `useMemo` dengan dependensi handler; tabel dikendalikan (`state.columnFilters`) sementara sorting dibiarkan uncontrolled lewat `initialState.sorting` (`priority` lalu `updatedAt`), sehingga data dummy tidak pernah dimutasi.
+- Slot paralel lama (`@area_stats`, `@bar_stats`, `@pie_stats`, `@sales`) beserta komponen demo (`area-graph.tsx`, `bar-graph.tsx`, `pie-graph.tsx`, `recent-sales.tsx`, `*-skeleton.tsx`) masih ada di disk tetapi tidak lagi dirender oleh layout overview. Kandidat pembersihan Phase 4/6 bila dashboard demo tidak diperlukan lagi.
+- Warna bar chart memakai `var(--chart-1)` token theme (pada theme `vercel` nilainya amber `oklch(0.81 0.17 75.35)`), bukan warna status temuan — sesuai aturan brief agar tidak menambah token warna baru.
+- Seam permission masih lokal (`const canManageFindings = false`) sehingga `Tambah Temuan`/`Impor XLSX` tampil disabled; saat Phase 5 dikerjakan, seam ini diganti pemeriksaan role server/client yang sebenarnya. Route `/api/users` dan `/api/products` juga masih belum memanggil `auth.protect()`.

@@ -7,7 +7,7 @@ Scope decisions, domain rules, and the phased build plan live in:
 - [`context.md`](./context.md) — product context and agreed decisions
 - [`task_plan.md`](./task_plan.md) — phased plan and current status
 
-**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo page, the Cmd+K command palette (header search) and the multi-theme selector are still available; remove them later if the BPK workflow does not need them. The BPK finding screens themselves are not built yet — see `task_plan.md` phases 8-11.
+**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo page, the Cmd+K command palette (header search) and the multi-theme selector are still available; remove them later if the BPK workflow does not need them. `/dashboard/overview` is now the **Dashboard Temuan BPK**: four KPI cards, a findings-per-year bar chart, an admin activity panel, six functional filters, a ten-row table and a summary drawer — all driven by dummy data in `src/features/overview/components/bpk-overview-data.ts`. The finding detail route, XLSX import and real admin actions are still pending (`task_plan.md` Phase 4-5).
 
 ## Stack
 

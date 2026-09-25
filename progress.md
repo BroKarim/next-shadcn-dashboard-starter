@@ -45,3 +45,19 @@
 - Sisanya tetap seperti hasil cleanup (Sentry, AI chat, kanban, chat, notifications, Organizations/Billing, CtaGithub, orphan deps, `scripts/cleanup.js`).
 - Dokumentasi disesuaikan kembali: README, AGENTS.md (theming 10 theme, struktur route/feature/kbar), `docs/themes.md` dikembalikan ke versi multi-theme.
 - Verifikasi ulang: `bun run typecheck` lulus, `bun run lint` 0 warning, `bun run build` lulus (route `product`, `api/products` kembali ada), smoke test: `/sign-in` 200, `/dashboard/product` 307 ke sign-in, `/api/products` 200.
+
+## 2026-09-25 — Phase 2 & 3: Deferred Implementation Brief (BPK Overview UI)
+
+Branch: `feat/bpk-overview-ui` (dibuat dari `chore/template-cleanup`).
+
+- `src/features/overview/components/bpk-overview-data.ts` (baru): tipe `BpkFinding`/`AdminActivity`/`BpkStatus`, 22 dummy temuan (lima status, tahun 2019-2024, 6 unit kerja, 6 PIC), 10 aktivitas admin, serta helper murni `formatRupiah`, `formatDateTime`, `formatDate`, `getStatusPriority`, `getOverviewMetrics`, `getFindingsByYear`, `getActivitiesForFinding`, plus konstanta `BPK_YEARS`/`BPK_KODE_TEMUAN`/`BPK_KODE_REKOMENDASI`. Tidak ada React, fetch, atau React Query di file ini.
+- `src/features/overview/components/bpk-overview.tsx` (baru): komponen client berisi empat KPI card, bar chart `Temuan per Tahun` (`var(--chart-1)`), panel `Aktivitas Admin` dengan scroll tanpa scrollbar, card `Daftar Temuan` dengan enam filter fungsional, tabel TanStack 10 baris/halaman, dan drawer ringkasan bertipe `swipeDirection='right'`. Data tabel diurutkan `getStatusPriority` lalu `tanggalTerakhirUpdate` paling lama tanpa memutasi array dummy. Seam permission lokal `canManageFindings = false` menonaktifkan `Tambah Temuan` dan `Impor XLSX` dengan alasan yang terlihat.
+- `src/app/dashboard/overview/layout.tsx`: konten demo diganti `PageContainer` (`pageTitle='Dashboard Temuan BPK'`, `pageDescription='Ringkasan tindak lanjut hasil pemeriksaan'`) + `BpkOverview`. Slot paralel lama dibiarkan ada tetapi tidak lagi dirender.
+- `src/components/icons.tsx`: menambahkan ikon registry `eye` (dipakai tombol ringkasan baris).
+- Tombol `Detail` (kolom Aksi) dan `Lihat Detail` (drawer) sengaja disabled dengan `title` penjelas karena route `/dashboard/overview/temuan/[id]` adalah Phase 4 — tidak ada link mati ke 404.
+- Verifikasi yang dijalankan:
+  - `bun run typecheck` lulus, `bun run lint` 0 warning/0 error, `bun run format` bersih, `bun run build` lulus (route `/dashboard/overview` tetap ada, tanpa route sementara).
+  - Smoke test `next start`: `/sign-in` 200, `/dashboard/overview` 307 ke sign-in, `/dashboard/product` 307, `/api/users` 200.
+  - Verifikasi browser sungguhan (Chrome via Playwright + halaman harness sementara yang sudah dihapus): 50/50 check lulus — empat KPI dan total rupiah, chart tampil dengan bar per tahun, panel aktivitas dapat di-scroll, keenam filter menyaring data (cari ID/kode, status, tahun, kode temuan, kode rekomendasi, judul), pagination 10 baris + 3 halaman, klik baris membuka drawer berisi seluruh field ringkasan, tombol close drawer berfungsi, klik tombol `Detail` yang disabled tidak membuka drawer, layout responsif 1440/800/390 tanpa overflow horizontal, dan mode gelap mengubah token permukaan tanpa error console.
+  - Bug nyata yang ditemukan lewat verifikasi browser: filter `Tahun` selalu menghasilkan 0 baris karena kolom `number` memakai `filterFn: 'auto'` TanStack (`inNumberRange`, butuh tuple `[min, max]`). Diperbaiki dengan `filterFn` eksplisit pada kolom `tahun`.
+- Belum dikerjakan (sesuai brief): route detail, impor XLSX/aksi admin nyata, deadline/overdue, AI, dan migrasi ke service/query layer.
