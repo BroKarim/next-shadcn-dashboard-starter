@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { Bar, BarChart, XAxis } from 'recharts';
 import {
   flexRender,
   getCoreRowModel,
@@ -14,6 +13,10 @@ import {
   type Row
 } from '@tanstack/react-table';
 
+import {
+  EChartsBarChart,
+  type ChartConfig
+} from '@/components/evilcharts/charts/echarts-bar-chart';
 import { Icons, type Icon } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,12 +29,6 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig
-} from '@/components/ui/chart';
 import {
   Drawer,
   DrawerClose,
@@ -117,7 +114,10 @@ const ALL_VALUE = 'all';
 const yearChartConfig = {
   jumlah: {
     label: 'Jumlah temuan',
-    color: 'var(--chart-1)'
+    colors: {
+      light: ['var(--chart-1)'],
+      dark: ['var(--chart-1)']
+    }
   }
 } satisfies ChartConfig;
 
@@ -188,6 +188,10 @@ export function BpkOverview() {
 
   const metrics = React.useMemo(() => getOverviewMetrics(BPK_FINDINGS), []);
   const findingsByYear = React.useMemo(() => getFindingsByYear(BPK_FINDINGS), []);
+  const yearChartData = React.useMemo(
+    () => findingsByYear.map(({ tahun, jumlah }) => ({ tahun, jumlah })),
+    [findingsByYear]
+  );
   const latestActivities = React.useMemo(
     () => BPK_ADMIN_ACTIVITIES.toSorted((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1)),
     []
@@ -359,28 +363,31 @@ export function BpkOverview() {
       </div>
 
       <div className='grid grid-cols-1 gap-4 lg:grid-cols-4'>
-        <Card className='lg:col-span-3'>
+        <Card className='lg:col-span-2'>
           <CardHeader>
             <CardTitle>Temuan per Tahun</CardTitle>
             <CardDescription>Jumlah temuan berdasarkan tahun pemeriksaan</CardDescription>
           </CardHeader>
           <CardContent>
-            <ChartContainer
-              config={yearChartConfig}
-              className='aspect-auto h-56 w-full md:h-64'
-              role='img'
-              aria-label='Grafik batang jumlah temuan per tahun pemeriksaan'
-            >
-              <BarChart accessibilityLayer data={findingsByYear}>
-                <XAxis dataKey='tahun' tickLine={false} tickMargin={10} axisLine={false} />
-                <ChartTooltip cursor={false} content={<ChartTooltipContent indicator='dashed' />} />
-                <Bar dataKey='jumlah' fill='var(--color-jumlah)' radius={4} />
-              </BarChart>
-            </ChartContainer>
+            <div role='img' aria-label='Grafik batang jumlah temuan per tahun pemeriksaan'>
+              <EChartsBarChart
+                data={yearChartData}
+                config={yearChartConfig}
+                xDataKey='tahun'
+                barRadius={4}
+                className='h-56 w-full md:h-64'
+              >
+                <EChartsBarChart.Grid />
+                <EChartsBarChart.XAxis dataKey='tahun' tickFormatter={(value) => String(value)} />
+                <EChartsBarChart.YAxis />
+                <EChartsBarChart.Tooltip />
+                <EChartsBarChart.Bar dataKey='jumlah' variant='hatched' isClickable />
+              </EChartsBarChart>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className='flex flex-col lg:col-span-1'>
+        <Card className='flex flex-col lg:col-span-2'>
           <CardHeader>
             <CardTitle>Aktivitas Admin</CardTitle>
             <CardDescription>Riwayat perubahan data temuan</CardDescription>
