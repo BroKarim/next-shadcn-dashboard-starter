@@ -6,8 +6,10 @@
  * Visibility only — this is a UX layer. Anything that changes state must be
  * authorized again on the server (server action / route handler).
  *
- * Roles are read from the Clerk user's server-controlled `publicMetadata.role`
- * and default to the least-privileged `user` role.
+ * The application role comes from the database (`users.role`) and is passed
+ * down from the dashboard server layout as `appRole` (D27). The Clerk
+ * `useAppRole()` helper below is deprecated and kept only for call sites that
+ * have not been migrated yet.
  */
 
 import { useUser } from '@clerk/nextjs';
@@ -20,6 +22,11 @@ const ROLE_RANK: Record<AppRole, number> = {
   admin: 2
 };
 
+/**
+ * @deprecated Roles are now resolved server-side from `users.role` and passed
+ * to the client as `appRole`. Kept temporarily until every consumer is
+ * migrated (task_plan.md §7).
+ */
 export function useAppRole(): AppRole {
   const { user } = useUser();
   const role = user?.publicMetadata?.role;
@@ -36,41 +43,37 @@ function isVisible(item: NavItem, role: AppRole): boolean {
 /**
  * Filter navigation items that the current application role may see.
  */
-export function useFilteredNavItems(items: NavItem[]) {
-  const role = useAppRole();
-
+export function useFilteredNavItems(items: NavItem[], appRole: AppRole) {
   return useMemo(() => {
     return items
-      .filter((item) => isVisible(item, role))
+      .filter((item) => isVisible(item, appRole))
       .map((item) =>
         item.items?.length
-          ? { ...item, items: item.items.filter((child) => isVisible(child, role)) }
+          ? { ...item, items: item.items.filter((child) => isVisible(child, appRole)) }
           : item
       );
-  }, [items, role]);
+  }, [items, appRole]);
 }
 
 /**
  * Filter navigation groups that the current application role may see.
  * Groups without visible items are dropped.
  */
-export function useFilteredNavGroups(groups: NavGroup[]) {
-  const role = useAppRole();
-
+export function useFilteredNavGroups(groups: NavGroup[], appRole: AppRole) {
   return useMemo(
     () =>
       groups
         .map((group) => ({
           ...group,
           items: group.items
-            .filter((item) => isVisible(item, role))
+            .filter((item) => isVisible(item, appRole))
             .map((item) =>
               item.items?.length
-                ? { ...item, items: item.items.filter((child) => isVisible(child, role)) }
+                ? { ...item, items: item.items.filter((child) => isVisible(child, appRole)) }
                 : item
             )
         }))
         .filter((group) => group.items.length > 0),
-    [groups, role]
+    [groups, appRole]
   );
 }

@@ -7,10 +7,17 @@ import { useMemo } from 'react';
 import RenderResults from './render-result';
 import useThemeSwitching from './use-theme-switching';
 import { useFilteredNavGroups } from '@/hooks/use-nav';
+import type { AppRole } from '@/types';
 
-export default function KBar({ children }: { children: React.ReactNode }) {
+export default function KBar({
+  children,
+  appRole
+}: {
+  children: React.ReactNode;
+  appRole: AppRole;
+}) {
   const router = useRouter();
-  const filteredGroups = useFilteredNavGroups(navGroups);
+  const filteredGroups = useFilteredNavGroups(navGroups, appRole);
 
   // These action are for the navigation
   const actions = useMemo(() => {

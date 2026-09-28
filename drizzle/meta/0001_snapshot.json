@@ -123,13 +123,9 @@
         "activities_actor_user_id_users_id_fk": {
           "name": "activities_actor_user_id_users_id_fk",
           "tableFrom": "activities",
-          "columnsFrom": [
-            "actor_user_id"
-          ],
+          "columnsFrom": ["actor_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -243,26 +239,18 @@
         "attachments_finding_id_findings_id_fk": {
           "name": "attachments_finding_id_findings_id_fk",
           "tableFrom": "attachments",
-          "columnsFrom": [
-            "finding_id"
-          ],
+          "columnsFrom": ["finding_id"],
           "tableTo": "findings",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "attachments_uploaded_by_user_id_users_id_fk": {
           "name": "attachments_uploaded_by_user_id_users_id_fk",
           "tableFrom": "attachments",
-          "columnsFrom": [
-            "uploaded_by_user_id"
-          ],
+          "columnsFrom": ["uploaded_by_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -361,26 +349,18 @@
         "comments_finding_id_findings_id_fk": {
           "name": "comments_finding_id_findings_id_fk",
           "tableFrom": "comments",
-          "columnsFrom": [
-            "finding_id"
-          ],
+          "columnsFrom": ["finding_id"],
           "tableTo": "findings",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "cascade"
         },
         "comments_author_user_id_users_id_fk": {
           "name": "comments_author_user_id_users_id_fk",
           "tableFrom": "comments",
-          "columnsFrom": [
-            "author_user_id"
-          ],
+          "columnsFrom": ["author_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -643,13 +623,9 @@
         "findings_last_import_batch_id_import_batches_id_fk": {
           "name": "findings_last_import_batch_id_import_batches_id_fk",
           "tableFrom": "findings",
-          "columnsFrom": [
-            "last_import_batch_id"
-          ],
+          "columnsFrom": ["last_import_batch_id"],
           "tableTo": "import_batches",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }
@@ -818,13 +794,9 @@
         "import_batches_uploaded_by_user_id_users_id_fk": {
           "name": "import_batches_uploaded_by_user_id_users_id_fk",
           "tableFrom": "import_batches",
-          "columnsFrom": [
-            "uploaded_by_user_id"
-          ],
+          "columnsFrom": ["uploaded_by_user_id"],
           "tableTo": "users",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "set null"
         }

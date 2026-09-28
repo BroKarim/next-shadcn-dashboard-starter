@@ -5,6 +5,7 @@ import { InfoSidebar } from '@/components/layout/info-sidebar';
 import { InfobarProvider } from '@/components/ui/infobar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { auth } from '@clerk/nextjs/server';
+import { getAppRoleWithBootstrap } from '@/lib/rbac';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 
@@ -20,11 +21,15 @@ export const metadata: Metadata = {
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Gate the whole /dashboard segment: redirect to sign-in when signed out.
   await auth.protect();
+  // Application role comes from the database (D27/D15); the bootstrap
+  // exception creates the first admin's row on first visit when their email
+  // is listed in INITIAL_ADMIN_EMAILS.
+  const appRole = await getAppRoleWithBootstrap();
   // Persisting the sidebar state in the cookie.
   const cookieStore = await cookies();
   const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
   return (
-    <KBar>
+    <KBar appRole={appRole}>
       <SidebarProvider defaultOpen={defaultOpen}>
         <a
           href='#main-content'
@@ -32,7 +37,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         >
           Skip to content
         </a>
-        <AppSidebar />
+        <AppSidebar appRole={appRole} />
         <SidebarInset id='main-content' tabIndex={-1} className='scroll-mt-16'>
           <Header />
           <InfobarProvider defaultOpen={false}>

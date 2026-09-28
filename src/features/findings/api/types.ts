@@ -138,6 +138,8 @@ export interface Activity {
   action: ActivityAction;
   actorEmail: string;
   occurredAt: string;
+  /** Display code (e.g. `BPK-2024-001`) when the entity is a finding. */
+  findingKode: string | null;
 }
 
 export interface FindingComment {

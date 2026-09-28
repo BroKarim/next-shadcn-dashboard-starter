@@ -1,5 +1,6 @@
 'use client';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import type { AppRole } from '@/types';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,13 +35,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 
-export default function AppSidebar() {
+export default function AppSidebar({ appRole }: { appRole: AppRole }) {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const { user } = useUser();
   const { signOut } = useClerk();
   const router = useRouter();
-  const filteredGroups = useFilteredNavGroups(navGroups);
+  const filteredGroups = useFilteredNavGroups(navGroups, appRole);
 
   React.useEffect(() => {
     // Side effects based on sidebar state changes

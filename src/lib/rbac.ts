@@ -145,3 +145,26 @@ export async function requireRole(minimum: AppRole): Promise<string> {
   }
   return userId;
 }
+
+/**
+ * Application role for server components, with the bootstrap exception (D36):
+ * when the user has no row yet AND their Clerk email is listed in
+ * `INITIAL_ADMIN_EMAILS`, the row is created immediately so the first admin
+ * never appears as `user`. This is the only place a pure read may create a
+ * user row, and it is gated by the env allowlist.
+ */
+export async function getAppRoleWithBootstrap(): Promise<AppRole> {
+  const { role, exists } = await getAppRole();
+  if (exists) {
+    return role;
+  }
+
+  const clerkUser = await currentUser();
+  const email = clerkUser?.primaryEmailAddress?.emailAddress;
+  if (!clerkUser || !email || !isInitialAdminEmail(email)) {
+    return role;
+  }
+
+  await ensureCurrentUser();
+  return (await getAppRole()).role;
+}

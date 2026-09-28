@@ -17,7 +17,7 @@ import { and, asc, count, desc, eq, ilike, isNull, or, sql, type SQL } from 'dri
 
 import { db } from '@/db/client';
 import { activities, attachments, comments, findings } from '@/db/schema';
-import { ForbiddenError, NotFoundError, ValidationError } from '@/lib/errors';
+import { NotFoundError, ValidationError } from '@/lib/errors';
 import { requireAuth, requireRole } from '@/lib/rbac';
 import {
   STATUS_PRIORITY,
@@ -39,7 +39,7 @@ import {
 const MAX_PER_PAGE = 100;
 
 /** Keep `STATUS_PRIORITY` (types.ts) and this CASE expression in sync. */
-const STATUS_ORDER = (Object.entries(STATUS_PRIORITY) as [FindingStatus, number][]).sort(
+const STATUS_ORDER = (Object.entries(STATUS_PRIORITY) as [FindingStatus, number][]).toSorted(
   (a, b) => a[1] - b[1]
 );
 
@@ -48,7 +48,6 @@ const statusPrioritySql = sql`(case ${findings.status} ${sql.raw(
 )})`;
 
 type FindingRow = typeof findings.$inferSelect;
-type ActivityRow = typeof activities.$inferSelect;
 type CommentRow = typeof comments.$inferSelect;
 type AttachmentRow = typeof attachments.$inferSelect;
 
@@ -73,14 +72,23 @@ function toFindingDTO(row: FindingRow): Finding {
   };
 }
 
-function toActivityDTO(row: ActivityRow): Activity {
+function toActivityDTO(row: {
+  id: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  actorEmail: string;
+  occurredAt: Date;
+  findingKode?: string | null;
+}): Activity {
   return {
     id: row.id,
     entityType: row.entityType,
     entityId: row.entityId,
     action: toActivityAction(row.action),
     actorEmail: row.actorEmail,
-    occurredAt: row.occurredAt.toISOString()
+    occurredAt: row.occurredAt.toISOString(),
+    findingKode: row.findingKode ?? null
   };
 }
 
@@ -287,8 +295,25 @@ export async function listRecentActivities(limit?: number): Promise<Activity[]> 
   await requireAuth();
 
   // No limit by default — the overview panel shows every activity in a
-  // scrollable area without a visible scrollbar (D34).
-  const query = db.select().from(activities).orderBy(desc(activities.occurredAt));
+  // scrollable area without a visible scrollbar (D34). The display code is
+  // joined in so the panel never shows raw uuids.
+  const query = db
+    .select({
+      id: activities.id,
+      entityType: activities.entityType,
+      entityId: activities.entityId,
+      action: activities.action,
+      actorEmail: activities.actorEmail,
+      occurredAt: activities.occurredAt,
+      findingKode: findings.kodeDisplay
+    })
+    .from(activities)
+    .leftJoin(
+      findings,
+      and(eq(activities.entityType, 'finding'), eq(activities.entityId, findings.id))
+    )
+    .orderBy(desc(activities.occurredAt));
+
   const rows = limit === undefined ? await query : await query.limit(limit);
   return rows.map(toActivityDTO);
 }
