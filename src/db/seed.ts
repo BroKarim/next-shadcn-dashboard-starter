@@ -27,7 +27,6 @@ import {
   BPK_COMMENTS,
   BPK_FINDINGS,
   type AdminActivity,
-  type BpkComment,
   type BpkFinding
 } from '../features/overview/components/bpk-overview-data';
 import { activities, comments, findings } from './schema';
