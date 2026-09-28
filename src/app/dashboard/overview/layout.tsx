@@ -1,13 +1,10 @@
-import PageContainer from '@/components/layout/page-container';
-import { BpkOverview } from '@/features/overview/components/bpk-overview';
-
-export default function OverViewLayout() {
-  return (
-    <PageContainer
-      pageTitle='Dashboard Temuan BPK'
-      pageDescription='Ringkasan tindak lanjut hasil pemeriksaan'
-    >
-      <BpkOverview />
-    </PageContainer>
-  );
+/**
+ * Pass-through layout for the overview segment.
+ *
+ * The overview header lives in `page.tsx` so nested routes (the finding detail
+ * page) can provide their own header. The legacy parallel-route slots are kept
+ * registered but no longer rendered.
+ */
+export default function OverViewLayout({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }

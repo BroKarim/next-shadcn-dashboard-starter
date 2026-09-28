@@ -61,3 +61,21 @@ Branch: `feat/bpk-overview-ui` (dibuat dari `chore/template-cleanup`).
   - Verifikasi browser sungguhan (Chrome via Playwright + halaman harness sementara yang sudah dihapus): 50/50 check lulus — empat KPI dan total rupiah, chart tampil dengan bar per tahun, panel aktivitas dapat di-scroll, keenam filter menyaring data (cari ID/kode, status, tahun, kode temuan, kode rekomendasi, judul), pagination 10 baris + 3 halaman, klik baris membuka drawer berisi seluruh field ringkasan, tombol close drawer berfungsi, klik tombol `Detail` yang disabled tidak membuka drawer, layout responsif 1440/800/390 tanpa overflow horizontal, dan mode gelap mengubah token permukaan tanpa error console.
   - Bug nyata yang ditemukan lewat verifikasi browser: filter `Tahun` selalu menghasilkan 0 baris karena kolom `number` memakai `filterFn: 'auto'` TanStack (`inNumberRange`, butuh tuple `[min, max]`). Diperbaiki dengan `filterFn` eksplisit pada kolom `tahun`.
 - Belum dikerjakan (sesuai brief): route detail, impor XLSX/aksi admin nyata, deadline/overdue, AI, dan migrasi ke service/query layer.
+
+## 2026-09-28 — Phase 4: halaman detail temuan
+
+Branch: `phase-4-detail-temuan` (dibuat dari `echart` setelah commit chart ECharts).
+
+- Penghapusan PIC: field `pic` dihapus dari tipe `BpkFinding`, 22 entri dummy, drawer ringkasan, dan referensi di `context.md`. `task_plan.md` brief Phase 2 dibiarkan sebagai catatan historis.
+- `src/features/overview/components/bpk-overview-data.ts`: tambah tipe `BpkFileType`/`BpkAttachment`/`BpkComment`, dummy `BPK_ATTACHMENTS` (5 berkas) dan `BPK_COMMENTS` (3 komentar), plus helper murni `formatFileSize`, `getFindingById`, `getAttachmentsForFinding`, `getCommentsForFinding`. `getActivitiesForFinding` kini menerima `limit` opsional (tanpa limit = semua).
+- `src/features/overview/components/bpk-status-badge.tsx` (baru): `StatusBadge` diekstrak dari overview agar dipakai overview dan halaman detail.
+- `src/features/overview/permissions.ts` (baru): seam `canManageFindings = false` + `MANAGE_ACTIONS_DISABLED_REASON` dibagi ke overview dan detail.
+- `src/features/overview/components/bpk-finding-detail.tsx` (baru, client): halaman panjang berisi Ringkasan Temuan (Tahun, Kode Temuan, Kode Rekomendasi, Nilai, Unit Kerja, Update Terakhir), Informasi Pemeriksaan, Dokumen Pendukung (daftar berkas + pratinjau PDF mock), Diskusi (daftar komentar + composer), dan Riwayat Aktivitas (timeline). Aksi mutasi disabled lewat seam permission.
+- Route `/dashboard/overview/temuan/[id]` (server component) memakai `PageContainer` dengan status badge + tombol `Edit Temuan` di header, dan `notFound()` bila id tidak ada.
+- Restrukturisasi route overview: `layout.tsx` dijadikan pass-through, header + `BpkOverview` dipindah ke `page.tsx` baru agar route bersarang punya header sendiri.
+- Tombol `Detail` (tabel) dan `Lihat Detail` (drawer) kini `<Link>` yang menavigasi ke route detail (memakai `buttonVariants`, bukan tombol di dalam anchor).
+- Verifikasi:
+  - `bun run typecheck` lulus, `bun run lint` 0 error pada `src/features/overview` + `src/app/dashboard/overview`, `bun run build` lulus dengan route `/dashboard/overview` dan `/dashboard/overview/temuan/[id]`.
+  - Render SSR halaman detail diverifikasi lewat route harness sementara (sudah dihapus): 200 dan memuat "Ringkasan Temuan", "Informasi Pemeriksaan", "Dokumen Pendukung", "Diskusi", "Riwayat Aktivitas", nama berkas, komentar, dan aktivitas; string "PIC" tidak ada. Overview juga diverifikasi 200 lewat harness sementara.
+  - Belum ada verifikasi klik di Chrome sungguhan (ekstensi Playwriter tidak terhubung saat sesi ini).
+- Belum dikerjakan: Phase 5 (impor XLSX, edit/hapus nyata, RBAC server-side) dan Phase 6 (verifikasi akhir).

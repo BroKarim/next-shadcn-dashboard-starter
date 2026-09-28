@@ -32,7 +32,6 @@ export interface BpkFinding {
   tanggalTindakLanjut?: string;
   tanggalTerakhirUpdate: string;
   unitKerja: string;
-  pic: string;
 }
 
 export interface AdminActivity {
@@ -55,6 +54,27 @@ export interface BpkOverviewMetric {
 export interface BpkYearlyFinding {
   tahun: number;
   jumlah: number;
+}
+
+export type BpkFileType = 'pdf' | 'xlsx' | 'docx' | 'image';
+
+export interface BpkAttachment {
+  id: string;
+  findingId: string;
+  fileName: string;
+  fileType: BpkFileType;
+  sizeBytes: number;
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
+export interface BpkComment {
+  id: string;
+  findingId: string;
+  authorName: string;
+  authorEmail: string;
+  body: string;
+  createdAt: string;
 }
 
 export const BPK_STATUSES: BpkStatus[] = [
@@ -93,8 +113,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     status: 'Belum Ditindaklanjuti',
     deskripsiTindakLanjut: 'Belum ada tanggapan dari satuan kerja.',
     tanggalTerakhirUpdate: '2024-09-18T09:15:00+07:00',
-    unitKerja: 'Biro Umum',
-    pic: 'Andi Pratama'
+    unitKerja: 'Biro Umum'
   },
   {
     id: 'BPK-2024-002',
@@ -112,8 +131,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     deskripsiTindakLanjut:
       'Satuan kerja menyampaikan tanggapan namun bukti setor belum dilampirkan sehingga rekomendasi dinyatakan belum sesuai.',
     tanggalTerakhirUpdate: '2024-09-05T14:40:00+07:00',
-    unitKerja: 'Biro Keuangan',
-    pic: 'Siti Nurhaliza'
+    unitKerja: 'Biro Keuangan'
   },
   {
     id: 'BPK-2024-003',
@@ -132,8 +150,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Dokumen surat tugas dan bukti pengeluaran telah dilengkapi dan diverifikasi oleh bagian keuangan.',
     tanggalTindakLanjut: '2024-08-22T00:00:00+07:00',
     tanggalTerakhirUpdate: '2024-08-22T11:05:00+07:00',
-    unitKerja: 'Fakultas Teknik',
-    pic: 'Budi Santoso'
+    unitKerja: 'Fakultas Teknik'
   },
   {
     id: 'BPK-2024-004',
@@ -152,8 +169,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Evaluasi telah dilakukan dan berita acara telah disampaikan kepada pemeriksa pada tanggal 12 Juli 2024.',
     tanggalTindakLanjut: '2024-07-12T00:00:00+07:00',
     tanggalTerakhirUpdate: '2024-07-12T16:20:00+07:00',
-    unitKerja: 'Lembaga Penelitian dan Pengabdian Masyarakat',
-    pic: 'Dewi Anggraini'
+    unitKerja: 'Lembaga Penelitian dan Pengabdian Masyarakat'
   },
   {
     id: 'BPK-2023-005',
@@ -170,8 +186,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     status: 'Belum Ditindaklanjuti',
     deskripsiTindakLanjut: 'Rekomendasi telah disampaikan, belum ada tindak lanjut tertulis.',
     tanggalTerakhirUpdate: '2024-06-30T08:50:00+07:00',
-    unitKerja: 'Biro Umum',
-    pic: 'Andi Pratama'
+    unitKerja: 'Biro Umum'
   },
   {
     id: 'BPK-2023-006',
@@ -189,8 +204,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     deskripsiTindakLanjut:
       'Perhitungan telah disampaikan namun belum memuat rincian per pegawai sehingga belum dapat diverifikasi.',
     tanggalTerakhirUpdate: '2024-05-17T10:30:00+07:00',
-    unitKerja: 'Biro Keuangan',
-    pic: 'Rina Kartika'
+    unitKerja: 'Biro Keuangan'
   },
   {
     id: 'BPK-2023-007',
@@ -210,8 +224,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     alasanDitolak:
       'Pemenuhan rekomendasi berada di luar kewenangan satuan kerja karena menunggu penetapan pemanfaatan oleh pimpinan universitas.',
     tanggalTerakhirUpdate: '2024-04-08T13:45:00+07:00',
-    unitKerja: 'Fakultas Teknik',
-    pic: 'Budi Santoso'
+    unitKerja: 'Fakultas Teknik'
   },
   {
     id: 'BPK-2023-008',
@@ -230,8 +243,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Sebanyak 27 akun telah dinonaktifkan dan prosedur peninjauan hak akses telah ditetapkan.',
     tanggalTindakLanjut: '2024-03-27T00:00:00+07:00',
     tanggalTerakhirUpdate: '2024-03-27T09:00:00+07:00',
-    unitKerja: 'UPT Perpustakaan',
-    pic: 'Joko Susilo'
+    unitKerja: 'UPT Perpustakaan'
   },
   {
     id: 'BPK-2022-009',
@@ -248,8 +260,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     status: 'Belum Ditindaklanjuti',
     deskripsiTindakLanjut: 'Proses sertifikasi belum berjalan, belum ada dokumen tindak lanjut.',
     tanggalTerakhirUpdate: '2024-02-19T15:10:00+07:00',
-    unitKerja: 'Biro Umum',
-    pic: 'Andi Pratama'
+    unitKerja: 'Biro Umum'
   },
   {
     id: 'BPK-2022-010',
@@ -267,8 +278,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     deskripsiTindakLanjut:
       'Usulan tarif telah disampaikan namun bukti penerimaan usulan belum lengkap.',
     tanggalTerakhirUpdate: '2024-01-25T11:35:00+07:00',
-    unitKerja: 'Biro Keuangan',
-    pic: 'Siti Nurhaliza'
+    unitKerja: 'Biro Keuangan'
   },
   {
     id: 'BPK-2022-011',
@@ -287,8 +297,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Rekonsiliasi telah dilakukan dan berita acara rekonsiliasi data telah disampaikan.',
     tanggalTindakLanjut: '2023-12-14T00:00:00+07:00',
     tanggalTerakhirUpdate: '2023-12-14T10:00:00+07:00',
-    unitKerja: 'Fakultas Kedokteran',
-    pic: 'Dewi Anggraini'
+    unitKerja: 'Fakultas Kedokteran'
   },
   {
     id: 'BPK-2022-012',
@@ -306,8 +315,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     deskripsiTindakLanjut: 'Denda telah ditagih dan disetorkan ke kas negara pada 2 November 2023.',
     tanggalTindakLanjut: '2023-11-02T00:00:00+07:00',
     tanggalTerakhirUpdate: '2023-11-02T14:15:00+07:00',
-    unitKerja: 'Fakultas Teknik',
-    pic: 'Rina Kartika'
+    unitKerja: 'Fakultas Teknik'
   },
   {
     id: 'BPK-2021-013',
@@ -324,8 +332,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     status: 'Belum Ditindaklanjuti',
     deskripsiTindakLanjut: 'Belum ada tanggapan sejak rekomendasi disampaikan.',
     tanggalTerakhirUpdate: '2023-09-08T09:25:00+07:00',
-    unitKerja: 'Lembaga Penelitian dan Pengabdian Masyarakat',
-    pic: 'Dewi Anggraini'
+    unitKerja: 'Lembaga Penelitian dan Pengabdian Masyarakat'
   },
   {
     id: 'BPK-2021-014',
@@ -343,8 +350,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     deskripsiTindakLanjut:
       'Setoran telah dilakukan sebagian sebesar Rp9.000.000 dan sisanya belum diselesaikan.',
     tanggalTerakhirUpdate: '2023-08-15T16:05:00+07:00',
-    unitKerja: 'UPT Perpustakaan',
-    pic: 'Joko Susilo'
+    unitKerja: 'UPT Perpustakaan'
   },
   {
     id: 'BPK-2021-015',
@@ -364,8 +370,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     alasanDitolak:
       'Hak dan kewajiban para pihak telah berakhir sesuai kontrak sehingga rekomendasi tidak dapat dilaksanakan.',
     tanggalTerakhirUpdate: '2023-07-21T13:30:00+07:00',
-    unitKerja: 'Lembaga Penelitian dan Pengabdian Masyarakat',
-    pic: 'Budi Santoso'
+    unitKerja: 'Lembaga Penelitian dan Pengabdian Masyarakat'
   },
   {
     id: 'BPK-2021-016',
@@ -384,8 +389,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Pencatatan dan dokumentasi lisensi telah selesai diverifikasi pemeriksa.',
     tanggalTindakLanjut: '2023-06-09T00:00:00+07:00',
     tanggalTerakhirUpdate: '2023-06-09T15:45:00+07:00',
-    unitKerja: 'UPT Perpustakaan',
-    pic: 'Rina Kartika'
+    unitKerja: 'UPT Perpustakaan'
   },
   {
     id: 'BPK-2020-017',
@@ -402,8 +406,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     status: 'Belum Ditindaklanjuti',
     deskripsiTindakLanjut: 'Perhitungan ulang belum dilakukan, belum ada dokumen tindak lanjut.',
     tanggalTerakhirUpdate: '2023-05-19T08:40:00+07:00',
-    unitKerja: 'Biro Keuangan',
-    pic: 'Siti Nurhaliza'
+    unitKerja: 'Biro Keuangan'
   },
   {
     id: 'BPK-2020-018',
@@ -421,8 +424,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     deskripsiTindakLanjut:
       'Usulan penghapusan telah disusun namun belum disampaikan kepada pengelola barang.',
     tanggalTerakhirUpdate: '2023-04-06T11:20:00+07:00',
-    unitKerja: 'Biro Umum',
-    pic: 'Andi Pratama'
+    unitKerja: 'Biro Umum'
   },
   {
     id: 'BPK-2020-019',
@@ -441,8 +443,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Pekerjaan telah diselesaikan dan berita acara pemeriksaan bersama telah ditandatangani.',
     tanggalTindakLanjut: '2023-02-28T00:00:00+07:00',
     tanggalTerakhirUpdate: '2023-02-28T10:15:00+07:00',
-    unitKerja: 'Fakultas Teknik',
-    pic: 'Joko Susilo'
+    unitKerja: 'Fakultas Teknik'
   },
   {
     id: 'BPK-2020-020',
@@ -462,8 +463,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     alasanDitolak:
       'Saldo dana telah disetor seluruhnya sehingga tidak terdapat objek yang dapat disajikan kembali.',
     tanggalTerakhirUpdate: '2023-01-11T14:00:00+07:00',
-    unitKerja: 'Fakultas Kedokteran',
-    pic: 'Dewi Anggraini'
+    unitKerja: 'Fakultas Kedokteran'
   },
   {
     id: 'BPK-2019-021',
@@ -482,8 +482,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
       'Perhitungan tarif satuan biaya telah ditetapkan dan disampaikan kepada pemeriksa.',
     tanggalTindakLanjut: '2022-11-30T00:00:00+07:00',
     tanggalTerakhirUpdate: '2022-11-30T09:35:00+07:00',
-    unitKerja: 'Biro Keuangan',
-    pic: 'Rina Kartika'
+    unitKerja: 'Biro Keuangan'
   },
   {
     id: 'BPK-2019-022',
@@ -500,8 +499,7 @@ export const BPK_FINDINGS: BpkFinding[] = [
     status: 'Belum Ditindaklanjuti',
     deskripsiTindakLanjut: 'Belum ada tindak lanjut atas pengujian prosedur pemulihan data.',
     tanggalTerakhirUpdate: '2022-10-14T15:55:00+07:00',
-    unitKerja: 'UPT Perpustakaan',
-    pic: 'Joko Susilo'
+    unitKerja: 'UPT Perpustakaan'
   }
 ];
 
@@ -587,6 +585,81 @@ export const BPK_ADMIN_ACTIVITIES: AdminActivity[] = [
   }
 ];
 
+export const BPK_ATTACHMENTS: BpkAttachment[] = [
+  {
+    id: 'DOC-001',
+    findingId: 'BPK-2024-001',
+    fileName: 'Bukti_Tindak_Lanjut.pdf',
+    fileType: 'pdf',
+    sizeBytes: 1_258_291,
+    uploadedAt: '2024-09-17T10:05:00+07:00',
+    uploadedBy: 'operator.bpk@usk.ac.id'
+  },
+  {
+    id: 'DOC-002',
+    findingId: 'BPK-2024-001',
+    fileName: 'Berita_Acara_Pemeriksaan.pdf',
+    fileType: 'pdf',
+    sizeBytes: 876_544,
+    uploadedAt: '2024-09-16T15:30:00+07:00',
+    uploadedBy: 'operator.bpk@usk.ac.id'
+  },
+  {
+    id: 'DOC-003',
+    findingId: 'BPK-2024-001',
+    fileName: 'Daftar_Inventaris_Ruangan.xlsx',
+    fileType: 'xlsx',
+    sizeBytes: 342_016,
+    uploadedAt: '2024-09-15T09:45:00+07:00',
+    uploadedBy: 'operator.bpk@usk.ac.id'
+  },
+  {
+    id: 'DOC-004',
+    findingId: 'BPK-2024-002',
+    fileName: 'Tanggapan_Satuan_Kerja.pdf',
+    fileType: 'pdf',
+    sizeBytes: 654_321,
+    uploadedAt: '2024-09-02T10:05:00+07:00',
+    uploadedBy: 'operator.bpk@usk.ac.id'
+  },
+  {
+    id: 'DOC-005',
+    findingId: 'BPK-2023-005',
+    fileName: 'Kertas_Kerja_Opname_Persediaan.pdf',
+    fileType: 'pdf',
+    sizeBytes: 2_104_832,
+    uploadedAt: '2024-06-30T08:50:00+07:00',
+    uploadedBy: 'operator.bpk@usk.ac.id'
+  }
+];
+
+export const BPK_COMMENTS: BpkComment[] = [
+  {
+    id: 'CMT-001',
+    findingId: 'BPK-2024-001',
+    authorName: 'Andi Pratama',
+    authorEmail: 'operator.bpk@usk.ac.id',
+    body: 'Kami telah melakukan koordinasi dengan unit terkait dan proses inventarisasi aset sedang berjalan. Dokumen pendukung akan segera dilengkapi.',
+    createdAt: '2024-09-17T10:15:00+07:00'
+  },
+  {
+    id: 'CMT-002',
+    findingId: 'BPK-2024-001',
+    authorName: 'Siti Nurhaliza',
+    authorEmail: 'verifikator.bpk@usk.ac.id',
+    body: 'Terima kasih atas tindak lanjutnya. Mohon pastikan seluruh dokumen sudah lengkap dan sesuai dengan rekomendasi BPK.',
+    createdAt: '2024-09-18T09:15:00+07:00'
+  },
+  {
+    id: 'CMT-003',
+    findingId: 'BPK-2024-002',
+    authorName: 'Siti Nurhaliza',
+    authorEmail: 'verifikator.bpk@usk.ac.id',
+    body: 'Bukti setor belum diterima, rekomendasi masih dinyatakan belum sesuai sampai dokumen diterima.',
+    createdAt: '2024-09-05T14:40:00+07:00'
+  }
+];
+
 function uniqueSorted<T>(values: T[]): T[] {
   return [...new Set(values)].toSorted((a, b) => (a > b ? 1 : a < b ? -1 : 0));
 }
@@ -629,6 +702,22 @@ export function formatDate(value: string): string {
     dateStyle: 'medium',
     timeZone: 'Asia/Jakarta'
   }).format(new Date(value));
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+
+  const units = ['KB', 'MB', 'GB'];
+  let size = bytes / 1024;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  const rounded = size >= 10 || Number.isInteger(size) ? Math.round(size) : size.toFixed(1);
+  return `${rounded} ${units[unitIndex]}`;
 }
 
 function sumNilaiTemuan(items: BpkFinding[]): number {
@@ -694,10 +783,30 @@ export function getFindingsByYear(findings: BpkFinding[]): BpkYearlyFinding[] {
 export function getActivitiesForFinding(
   activities: AdminActivity[],
   findingId: string,
-  limit = 3
+  limit?: number
 ): AdminActivity[] {
-  return activities
+  const sorted = activities
     .filter((activity) => activity.findingId === findingId)
-    .toSorted((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1))
-    .slice(0, limit);
+    .toSorted((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1));
+
+  return limit === undefined ? sorted : sorted.slice(0, limit);
+}
+
+export function getFindingById(findings: BpkFinding[], id: string): BpkFinding | undefined {
+  return findings.find((finding) => finding.id === id);
+}
+
+export function getAttachmentsForFinding(
+  attachments: BpkAttachment[],
+  findingId: string
+): BpkAttachment[] {
+  return attachments
+    .filter((attachment) => attachment.findingId === findingId)
+    .toSorted((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
+}
+
+export function getCommentsForFinding(comments: BpkComment[], findingId: string): BpkComment[] {
+  return comments
+    .filter((comment) => comment.findingId === findingId)
+    .toSorted((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
 }

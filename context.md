@@ -2,7 +2,7 @@
 
 ## Tujuan Produk
 
-Membangun dashboard internal USK untuk memantau tindak lanjut temuan BPK yang sumber resminya berasal dari ekspor XLSX SILAHAP. SILAHAP tetap menjadi sistem pemerintah dan sumber data resmi; dashboard ini memudahkan rektorat, pimpinan, SPI, keuangan, unit kerja, dan PIC melihat progres tanpa akses langsung ke SILAHAP.
+Membangun dashboard internal USK untuk memantau tindak lanjut temuan BPK yang sumber resminya berasal dari ekspor XLSX SILAHAP. SILAHAP tetap menjadi sistem pemerintah dan sumber data resmi; dashboard ini memudahkan rektorat, pimpinan, SPI, keuangan, dan unit kerja melihat progres tanpa akses langsung ke SILAHAP.
 
 Fokus tahap pertama hanya BPK. KAP/Management Letter belum masuk scope UI awal.
 
@@ -13,10 +13,10 @@ Fokus tahap pertama hanya BPK. KAP/Management Letter belum masuk scope UI awal.
 - Identitas pencocokan impor: `NoSatker + Tahun + Kode Temuan + Kode Rekomendasi`.
 - Admin dapat mengunggah XLSX, menambah temuan manual, memperbarui data, menghapus temuan, mengunggah berkas, mengatur pengguna, dan memberi hak edit.
 - User biasa dapat melihat seluruh data secara read-only. Hak edit diberikan admin jika diperlukan.
-- User dengan hak edit dapat mengubah data operasional seperti Unit Kerja, PIC, catatan, komentar, dan lampiran.
+- User dengan hak edit dapat mengubah data operasional seperti Unit Kerja, catatan, komentar, dan lampiran.
 - Komentar hanya dapat ditulis admin atau user yang memiliki hak edit; user read-only hanya dapat membaca.
 - Perubahan admin/user dan aktivitas penting dicatat pada timeline dengan tanggal dan email pelaku. Aktivitas komentar tidak dimasukkan ke timeline aktivitas admin.
-- Jika impor XLSX menemukan identitas yang sama, kolom resmi SILAHAP yang berubah diperbarui: Status Tindak Lanjut, Alasan Ditolak, Deskripsi Tindak Lanjut, Tanggal Tindak Lanjut, Tanggal Terakhir Update, dan Nilai Temuan. Data internal seperti komentar, lampiran, PIC, dan catatan tidak boleh hilang.
+- Jika impor XLSX menemukan identitas yang sama, kolom resmi SILAHAP yang berubah diperbarui: Status Tindak Lanjut, Alasan Ditolak, Deskripsi Tindak Lanjut, Tanggal Tindak Lanjut, Tanggal Terakhir Update, dan Nilai Temuan. Data internal seperti komentar, lampiran, dan catatan tidak boleh hilang.
 - Nilai Temuan selalu numerik, sehingga tidak membutuhkan AI untuk ekstraksi nominal.
 - Deadline/overdue belum masuk tahap awal.
 
@@ -41,7 +41,7 @@ Fokus tahap pertama hanya BPK. KAP/Management Letter belum masuk scope UI awal.
 
 ### Drawer ringkasan
 
-Menekan baris temuan membuka drawer ringkasan cepat. Drawer berisi status, identitas temuan, nilai rupiah, judul, uraian singkat, Unit Kerja, PIC, pembaruan terakhir, aktivitas terakhir, dan tombol `Lihat Detail`. Drawer tidak menjadi tempat utama komentar atau preview PDF.
+Menekan baris temuan membuka drawer ringkasan cepat. Drawer berisi status, identitas temuan, nilai rupiah, judul, uraian singkat, Unit Kerja, pembaruan terakhir, aktivitas terakhir, dan tombol `Lihat Detail`. Drawer tidak menjadi tempat utama komentar atau preview PDF.
 
 ### Halaman detail temuan
 

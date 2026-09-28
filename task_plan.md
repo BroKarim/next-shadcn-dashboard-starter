@@ -42,10 +42,12 @@ Status: `complete`
 
 ### Phase 4 — Drawer dan halaman detail
 
-Status: `pending`
+Status: `complete`
 
-- Tambahkan drawer ringkasan saat baris temuan ditekan.
-- Tambahkan halaman detail panjang untuk informasi pemeriksaan, dokumen/PDF, diskusi, dan timeline.
+- Drawer ringkasan dari Phase 3 tetap dipakai; tombol `Detail`/`Lihat Detail` kini menavigasi ke route asli.
+- Route `/dashboard/overview/temuan/[id]` menampilkan satu halaman panjang tanpa tab: Ringkasan Temuan, Informasi Pemeriksaan, Dokumen Pendukung (daftar + pratinjau), Diskusi, dan Riwayat Aktivitas.
+- Field `pic` dihapus dari tipe `BpkFinding`, seluruh dummy data, drawer, dan context.md karena tidak dibutuhkan.
+- Aksi `Edit Temuan`, `Unggah Berkas`, dan kirim komentar memakai seam `canManageFindings` yang dibagi dari `src/features/overview/permissions.ts` dan masih disabled sampai RBAC Phase 5.
 
 ### Phase 5 — Admin actions dan audit timeline UI
 

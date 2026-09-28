@@ -18,8 +18,7 @@ import {
   type ChartConfig
 } from '@/components/evilcharts/charts/echarts-bar-chart';
 import { Icons, type Icon } from '@/components/icons';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
   CardAction,
@@ -57,6 +56,7 @@ import {
 } from '@/components/ui/table';
 import { DataTablePagination } from '@/components/ui/table/data-table-pagination';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 import {
   BPK_ADMIN_ACTIVITIES,
   BPK_FINDINGS,
@@ -72,41 +72,20 @@ import {
   getStatusPriority,
   type AdminActivity,
   type BpkFinding,
-  type BpkOverviewMetric,
-  type BpkStatus
+  type BpkOverviewMetric
 } from './bpk-overview-data';
+import { canManageFindings, MANAGE_ACTIONS_DISABLED_REASON } from '../permissions';
+import { StatusBadge } from './bpk-status-badge';
 
 /**
- * Permission seam for finding mutations. The overview is still dummy-data
- * driven, so the manage actions stay disabled; when the RBAC work lands
- * (task_plan.md Phase 5) this is replaced by the real server/client role check.
+ * Permission seam for finding mutations lives in `../permissions` so the
+ * overview and detail views share the same flag until RBAC lands.
  */
-const canManageFindings = false;
-
-const MANAGE_ACTIONS_DISABLED_REASON =
-  'Aksi pengelolaan temuan memerlukan hak akses yang belum disiapkan pada tahap ini.';
-
 const METRIC_ICONS: Record<BpkOverviewMetric['key'], Icon> = {
   total: Icons.page,
   sesuai: Icons.badgeCheck,
   belumSesuai: Icons.warning,
   belumDitindaklanjuti: Icons.alertCircle
-};
-
-const STATUS_BADGE_VARIANT: Record<BpkStatus, 'default' | 'secondary' | 'outline'> = {
-  'Belum Ditindaklanjuti': 'default',
-  'Belum Sesuai': 'outline',
-  'Sudah Ditindaklanjuti': 'secondary',
-  'Sesuai Rekomendasi': 'secondary',
-  'Tidak Dapat Ditindaklanjuti': 'outline'
-};
-
-const STATUS_BADGE_CLASS: Record<BpkStatus, string> = {
-  'Belum Ditindaklanjuti': 'border-transparent',
-  'Belum Sesuai': 'border-destructive/40 text-destructive',
-  'Sudah Ditindaklanjuti': 'border-transparent',
-  'Sesuai Rekomendasi': 'border-transparent',
-  'Tidak Dapat Ditindaklanjuti': 'text-muted-foreground'
 };
 
 const ALL_VALUE = 'all';
@@ -123,18 +102,6 @@ const yearChartConfig = {
 
 /** Hidden helper column ids used for filtering and the default sort. */
 const HELPER_COLUMN_IDS = ['search', 'priority', 'updatedAt'] as const;
-
-function StatusBadge({ status }: { status: BpkStatus }) {
-  return (
-    <Badge
-      variant={STATUS_BADGE_VARIANT[status]}
-      className={cn('gap-1.5', STATUS_BADGE_CLASS[status])}
-    >
-      <span aria-hidden='true' className='size-1.5 rounded-full bg-current' />
-      {status}
-    </Badge>
-  );
-}
 
 function FilterField({
   label,
@@ -198,7 +165,7 @@ export function BpkOverview() {
   );
   const relatedActivities = React.useMemo(
     () =>
-      selectedFinding ? getActivitiesForFinding(BPK_ADMIN_ACTIVITIES, selectedFinding.id) : [],
+      selectedFinding ? getActivitiesForFinding(BPK_ADMIN_ACTIVITIES, selectedFinding.id, 3) : [],
     [selectedFinding]
   );
 
@@ -283,15 +250,12 @@ export function BpkOverview() {
             >
               <Icons.eye className='size-4' />
             </Button>
-            {/* Placeholder: the detail route (/dashboard/overview/temuan/[id]) is Phase 4. */}
-            <Button
-              variant='outline'
-              size='sm'
-              disabled
-              title='Halaman detail temuan dikerjakan pada fase berikutnya.'
+            <Link
+              href={`/dashboard/overview/temuan/${row.original.id}`}
+              className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
             >
               Detail
-            </Button>
+            </Link>
           </div>
         )
       }
@@ -671,7 +635,6 @@ export function BpkOverview() {
                     }
                   />
                   <DetailRow label='Unit Kerja' value={selectedFinding.unitKerja} />
-                  <DetailRow label='PIC' value={selectedFinding.pic} />
                   <DetailRow
                     label='Update terakhir'
                     value={
@@ -722,14 +685,12 @@ export function BpkOverview() {
               </div>
 
               <DrawerFooter>
-                {/* Placeholder: the detail route is implemented in Phase 4. */}
-                <Button
-                  variant='outline'
-                  disabled
-                  title='Halaman detail temuan dikerjakan pada fase berikutnya.'
+                <Link
+                  href={`/dashboard/overview/temuan/${selectedFinding.id}`}
+                  className={cn(buttonVariants({ variant: 'outline' }))}
                 >
                   Lihat Detail
-                </Button>
+                </Link>
               </DrawerFooter>
             </>
           )}
