@@ -79,3 +79,25 @@ Branch: `phase-4-detail-temuan` (dibuat dari `echart` setelah commit chart EChar
   - Render SSR halaman detail diverifikasi lewat route harness sementara (sudah dihapus): 200 dan memuat "Ringkasan Temuan", "Informasi Pemeriksaan", "Dokumen Pendukung", "Diskusi", "Riwayat Aktivitas", nama berkas, komentar, dan aktivitas; string "PIC" tidak ada. Overview juga diverifikasi 200 lewat harness sementara.
   - Belum ada verifikasi klik di Chrome sungguhan (ekstensi Playwriter tidak terhubung saat sesi ini).
 - Belum dikerjakan: Phase 5 (impor XLSX, edit/hapus nyata, RBAC server-side) dan Phase 6 (verifikasi akhir).
+
+## 2026-09-28 — Phase 7: Infrastruktur Data (PostgreSQL + Drizzle + service layer)
+
+Branch: `feat/data-infra-findings` (dari `891ff72`, berisi Phase 4), worktree tunggal `/Users/kiram/Code/keuangan`.
+
+- Dependency baru: `drizzle-orm@0.45.2`, `postgres@3.4.9`, dev: `drizzle-kit@0.31.10`, `dotenv@18.0.1`. `server-only` sudah tersedia transitive.
+- Database lokal `keuangan` dibuat (`createdb -h localhost -U kiram keuangan`); `DATABASE_URL` + `INITIAL_ADMIN_EMAILS` (kosong) ditambahkan ke `.env.local`.
+- Skema enam tabel di `src/db/schema.ts` dengan nama kolom eksplisit (tanpa opsi `casing`); migrasi `drizzle/0000_*` di-commit setelah SQL direview (partial unique `WHERE deleted_at IS NULL` diekspresikan drizzle-kit dengan benar).
+- Migrasi manual `drizzle/0001_*`: sequence + trigger `kode_display` (`BPK-{tahun}-{seq}`, retry maks 100 kali saat bentrok). Diuji: insert tanpa `kode_display` → `BPK-2025-001`.
+- Uji DB lewat psql: duplikat natural key saat aktif → gagal; soft delete → insert ulang natural key yang sama → berhasil; `updated_at` naik via Drizzle `$onUpdate` dan `tanggal_terakhir_update` tidak tersentuh.
+- `src/db/seed.ts` idempotent: jalan pertama 22 temuan + 9 aktivitas + 3 komentar; jalan kedua semua `inserted=0`. Satu aktivitas mock (`Impor XLSX` tanpa `findingId`) sengaja tidak di-seed — aktivitas level batch akan lahir dari `import_batches` nyata saat fitur impor (Phase 5).
+- Catatan API Drizzle: `onConflictDoNothing` memakai `where` untuk predikat partial index (`targetWhere` hanya ada di `onConflictDoUpdate`).
+- `src/lib/rbac.ts` + `src/lib/errors.ts`: `requireAuth()` (Clerk `userId` saja), `getAppRole()` → `{ role, exists }`, `ensureCurrentUser()` (lazy upsert, role tidak pernah ditimpa; email dari `currentUser()` hanya di jalur pembuatan baris), `requireActorIdentity()`, `requireRole()`, dan `getAppRoleWithBootstrap()` (pengecualian bootstrap D36).
+- `src/features/findings/api/` (types/service/queries) + `src/features/findings/utils/format.ts`: server actions dengan filter/pagination/sort di SQL; sort default `CASE status` + `tanggal_terakhir_update ASC` (tanpa kolom `status_priority`); uang tetap string end-to-end.
+- Bug yang tertangkap saat uji: metrik `total` awalnya menunjuk `row=null` → 0; diperbaiki dengan agregat keseluruhan terpisah. Semua KPI kini identik dengan helper mock (total 22, nilai Rp17.341.700.000).
+- UI overview dipecah: `bpk-kpi-cards`, `bpk-year-chart`, `bpk-activity-panel` (tanpa limit, D34), `bpk-findings-table` (nuqs `q/status/tahun/kodeTemuan/kodeRekomendasi/judul` + page/perPage; debounce via nuqs `limitUrlUpdates: debounce(400)`; TanStack manual* via hook `useDataTable`), skeleton di `bpk-overview-skeletons`. `bpk-overview.tsx` menjadi komposisi; `overview/page.tsx` async + `await Promise.all` prefetch ×4 sebelum `dehydrate()` (D32); `overview/loading.tsx` baru.
+- Drawer memakai `useQuery(findingActivitiesOptions(id, 3))` non-suspense; kolom `ID` dan link detail kini memakai `kodeDisplay` (uuid tetap jadi row id internal).
+- Role plumbing: `dashboard/layout.tsx` memanggil `getAppRoleWithBootstrap()` dan mengirim `appRole` ke `KBar` + `AppSidebar`; `useFilteredNavGroups/Items` menerima `appRole` eksplisit; `useAppRole()` (Clerk) ditandai deprecated. `overview/page.tsx` menghitung `canManage` dari role DB.
+- Dokumentasi: `docs/data.md` baru; `AGENTS.md` + `docs/nav-rbac.md` diperbarui (role dari DB, bukan Clerk metadata; snippet requireRole diganti referensi `src/lib/rbac.ts`).
+- Lint: 0 error; 5 warning tersisa semua di `src/components/evilcharts/*` (pre-existing Phase 3/4; ditambah komentar `oxlint-disable` ber-scope di `echarts-legend.tsx` yang sebelumnya membuat `bun run lint` gagal).
+- Build lulus; semua route dinamis (ƒ) sehingga build tidak menyentuh DB. Smoke test `next start` (port 3100): `/` → 307 sign-in, `/sign-in` 200, `/dashboard/overview|users|product` → 307, `/api/users` 200. `grep DATABASE_URL .next/static` → 0 file.
+- Verifikasi yang masih menunggu: uji manual di browser dengan login Clerk sungguhan (KPI/chart/panel/filters/pagination/drawer/dark mode), RBAC end-to-end dengan email di `INITIAL_ADMIN_EMAILS`, dan pengujian `includeDeleted` admin-only lewat service (butuh mutation Phase 5 atau pengecualian sementara).

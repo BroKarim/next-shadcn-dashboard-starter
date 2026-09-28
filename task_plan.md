@@ -66,7 +66,7 @@ Status: `pending`
 
 ### Phase 7 — Infrastruktur data (PostgreSQL + Drizzle + service layer)
 
-Status: `planned` — spesifikasi lengkap ada di bagian **Implementation Brief — Infrastruktur Data** di bawah; belum ada kode yang dieksekusi.
+Status: `implemented` — 8 commit dieksekusi di branch `feat/data-infra-findings`; verifikasi manual di browser (login asli) menunggu konfirmasi pemilik produk. Lihat `progress.md` dan `docs/data.md`.
 
 Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tunggal `/Users/kiram/Code/keuangan`.
 

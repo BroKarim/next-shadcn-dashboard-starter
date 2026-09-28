@@ -14,17 +14,21 @@ Navigation visibility is filtered client-side by **application role**. One insti
 | `editor` | May edit operational finding data   |
 | `admin`  | Full access, including user/role management |
 
-Roles are stored in Clerk's server-controlled user metadata:
+Roles live in the local `users` table of the PostgreSQL database — the database is the source of truth, not Clerk metadata (task_plan.md D15):
 
-```json
-{ "publicMetadata": { "role": "editor" } }
-```
+| Column          | Notes                                            |
+| --------------- | ------------------------------------------------ |
+| `clerk_user_id` | Keys the row against the signed-in Clerk user    |
+| `role`          | `user` \| `editor` \| `admin`, default `user`    |
 
-Only the backend (Clerk Dashboard or a protected server action) may write this field — a user must never be able to set their own role.
+- The row is created lazily by `ensureCurrentUser()` (`src/lib/rbac.ts`) the first time the user performs a mutation; an existing role is never rewritten there.
+- `INITIAL_ADMIN_EMAILS` (comma-separated) elevates a user to `admin` only when their row is first created. As a bootstrap exception, the dashboard layout may create the row on first visit for allowlisted emails so the first admin never appears as `user`.
+- Only a protected, admin-gated server action (Phase 5) may change a role; a user must never be able to set their own role.
 
 ## Files
 
-1. `src/hooks/use-nav.ts` — reads the role and filters nav items (client-side, instant)
+1. `src/lib/rbac.ts` — `requireAuth()`, `requireRole()`, `getAppRoleWithBootstrap()` (server-side, security boundary)
+2. `src/hooks/use-nav.ts` — filters nav items using the `appRole` passed from the dashboard server layout (client-side, instant)
 2. `src/types/index.ts` — `AppRole` and `PermissionCheck`
 3. `src/config/nav-config.ts` — per-item `access` declarations
 

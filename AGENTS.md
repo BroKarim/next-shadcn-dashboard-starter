@@ -52,7 +52,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 ### Authentication & Authorization
 
 - Clerk for authentication — single tenant (one institution), no Clerk Organizations or Billing
-- Application roles: `user` (read-only), `editor`, `admin`, read from Clerk's server-controlled `publicMetadata.role`
+- Application roles: `user` (read-only), `editor`, `admin` — stored in the local `users` table (`users.role`); the database is the source of truth, Clerk only provides identity
 - Roles must be enforced server-side (server action / route handler); client-side nav filtering is UX only — see `docs/nav-rbac.md`
 
 ### Data & APIs
@@ -289,7 +289,7 @@ export const navGroups: NavGroup[] = [
 
 ### Client-Side Filtering
 
-The `useFilteredNavGroups()` / `useFilteredNavItems()` hooks in `src/hooks/use-nav.ts` read the role from Clerk's `useUser().publicMetadata.role` (defaulting to the least-privileged `user`) and hide items above the current role. This is UX only — actual security checks must happen server-side.
+The dashboard server layout resolves the role from the database (`getAppRoleWithBootstrap()` in `src/lib/rbac.ts`) and passes `appRole` down to `AppSidebar` and `KBar`; the filtering hooks in `src/hooks/use-nav.ts` use that value to hide items above the current role. This is UX only — actual security checks happen server-side via `requireRole()`.
 
 ---
 
@@ -311,27 +311,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
 ### Role Checks (server-side)
 
-Application roles live in Clerk's server-controlled `publicMetadata.role` (`user` | `editor` | `admin`).
+Application roles live in the `users.role` column of the local PostgreSQL database (`user` | `editor` | `admin`). Clerk provides the identity only.
 
-```tsx
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+The real implementation lives in `src/lib/rbac.ts` — use it, do not re-implement:
 
-export async function requireRole(minimum: 'user' | 'editor' | 'admin') {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
+```ts
+import { requireRole, requireActorIdentity } from '@/lib/rbac';
+import type { AppRole } from '@/types';
 
-  const user = await currentUser();
-  const role = user?.publicMetadata?.role;
-  const current = role === 'admin' || role === 'editor' ? role : 'user';
-  const rank = { user: 0, editor: 1, admin: 2 } as const;
-
-  if (rank[current] < rank[minimum]) throw new Error('Forbidden');
-  return { userId, role: current };
-}
+// Inside a server action that mutates data:
+await requireRole('editor' as AppRole); // throws ForbiddenError when insufficient
+const actor = await requireActorIdentity(); // { userId, email, name } for actor snapshots
 ```
 
-Enforce this in every server action / route handler that mutates data, not only in the UI.
+- `requireAuth()` → Clerk `userId` (`auth()` does not expose an email).
+- `ensureCurrentUser()` lazily creates the `users` row (role `user`, or `admin` for emails in `INITIAL_ADMIN_EMAILS`) and never rewrites an existing role.
+- `getAppRoleWithBootstrap()` is the read-side helper used by the dashboard layout.
+- Domain errors come from `src/lib/errors.ts`; translate them with `toUserMessage()` for toasts — never leak raw database errors to the UI.
 
 ---
 
@@ -630,7 +626,7 @@ See "Theming System" section above or `docs/themes.md`.
 **Navigation items not showing**
 
 - Check the item's `access.role` in `src/config/nav-config.ts`
-- Verify the signed-in user's `publicMetadata.role` meets that minimum role
+- Verify the signed-in user's `users.role` row in the database (or temporarily their Clerk `publicMetadata.role` for legacy call sites)
 
 ---
 
