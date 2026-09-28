@@ -28,8 +28,6 @@ import {
   uuid
 } from 'drizzle-orm/pg-core';
 
-const now = () => sql`now()`;
-
 export const users = pgTable(
   'users',
   {

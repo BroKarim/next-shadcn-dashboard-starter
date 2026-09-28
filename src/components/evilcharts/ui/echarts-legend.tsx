@@ -1,3 +1,4 @@
+// oxlint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- third-party evilcharts legend; items are visual legend keys guarded by isClickable
 'use client';
 
 import {

@@ -1,3 +1,4 @@
+// oxlint-disable no-console -- CLI script; stdout/stderr is its interface
 /**
  * Seed dev data (task_plan.md §4, D26).
  *
@@ -45,8 +46,6 @@ if (!url) {
 
 const pg = postgres(url);
 const db = drizzle(pg);
-
-const toDateOnly = (iso: string): string => iso.slice(0, 10);
 
 const toFindingValues = (f: BpkFinding) => ({
   kodeDisplay: f.id,
