@@ -6,7 +6,7 @@ Mengimplementasikan UI tahap pertama dashboard monitoring temuan BPK USK pada co
 
 ## Status
 
-`complete` — Phase 1–7 selesai. Phase 5 & 6 dieksekusi di branch `feat/admin-actions` (5 commit) yang dibangun di atas `feat/data-infra-findings` (Phase 7, 9 commit). Satu pekerjaan tersisa yang butuh manusia: verifikasi interaksi di browser dengan sesi login Clerk asli (daftar periksa di Phase 6). Ringkasan kronologis ada di `progress.md`, detail skema/data di `docs/data.md`.
+`complete` — Phase 1–7 selesai. Phase 5 & 6 dieksekusi di branch `feat/admin-actions` (5 commit) yang dibangun di atas `feat/data-infra-findings` (Phase 7, 9 commit). Satu pekerjaan tersisa yang butuh manusia: verifikasi interaksi di browser dengan sesi login Clerk asli (daftar periksa di Phase 6). Ringkasan kronologis ada di `progress.md`, detail skema/data di `docs/data.md`. Fase berikutnya: Phase 8 (verifikasi browser, guard impor, cleanup mock, merge) — status `planned`.
 
 ## Phases
 
@@ -85,6 +85,31 @@ Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tungga
 - Pindahkan seluruh data baca overview (KPI, grafik, aktivitas, tabel) ke service/query layer.
 - Siapkan `getFindingDetail(id)` untuk halaman detail tanpa mengubah UI Phase 4.
 - Revisi brief: `status_priority` dihapus (pakai `CASE`), unique key jadi partial, `kode_display` dibuat trigger, prefetch `await Promise.all`, `currentUser()` untuk email, aktivitas tanpa limit, nama kolom eksplisit + `dotenv`.
+
+### Phase 8 — Verifikasi browser, guard impor, cleanup mock, merge
+
+Status: `planned` — branch `feat/import-guards-cleanup` (dari `6bf1518` pada `feat/admin-actions`). Disepakati bersama pemilik produk lewat sesi grilling ( grading: semua rekomendasi disetujui dengan dua koreksi fakta pada guard impor).
+
+Urutan eksekusi (masing-masing satu commit kecil; bug besar menghentikan fase untuk grill ulang — bug kecil diperbaiki langsung di branch ini):
+
+1. **Verifikasi browser dengan login Clerk asli** (pemilik produk menjalankan; agent standby perbaikan).
+   Checklist yang diverifikasi: form tambah/edit temuan (validasi + submit), hapus/restore + switch "Tampilkan yang dihapus", impor berkas XLSX asli (mapping + ringkasan + penyimpanan berkas sumber), unggah lampiran + pratinjau PDF/gambar + unduh, hapus lampiran, komentar (kirim, hapus sendiri/all oleh admin), halaman detail lintas section, ubah role di `/dashboard/access` (efek nav setelah reload), drawer, enam filter, pagination, sort, dark mode, responsif mobile/tablet/desktop. Bug kecil (label, spacing, toast ganda) → perbaiki + commit kecil; bug besar (desain/DB) → stop, grill ulang.
+2. **Guard impor: warning file hash + counter baris** (non-blocking, tanpa modal).
+   - `file_hash` sudah ada di `import_batches` (kolom `file_hash` + index `import_batches_file_hash_idx`, dihitung di `import-core.ts`): query sebelum impor; bila hash sama dengan batch sebelumnya → warning inline di UI impor: "File ini identik dengan batch {id} ({tanggal}, oleh {email}). Periksa apakah ini memang revisi terbaru." Tidak memblokir.
+   - Ringkasan setelah impor menampilkan counter baris aktif yang **ada** `last_import_batch_id` dan `last_import_batch_id != batch ini` (baris aktif yang tidak terlihat di XLSX terakhir). Baris dengan `last_seen_in_import_at` NULL dihitung "belum pernah diimpor" dan **tidak** digabung ke counter ini (koreksi pemilik: seed tidak mengisi `last_seen_in_import_at`).
+   - Disengaja: baris yang hilang dari XLSX tetap tidak dihapus (D19 tetap berlaku).
+3. **Cleanup mock data** — `bpk-overview-data.ts` keluar dari jalur UI.
+   - Opsi filter Tahun / Kode Temuan / Kode Rekomendasi di `bpk-findings-table.tsx` ganti sumber ke DB: satu fungsi service `getFindingFilterOptions()` → `{ tahun, kodeTemuan, kodeRekomendasi }` (DISTINCT, satu query, bukan tiga), query key baru di `findingKeys`, di-invalidasi bersama `findingKeys.all` setelah mutasi.
+   - Dataset seed (`BPK_FINDINGS`, `BPK_ADMIN_ACTIVITIES`, `BPK_COMMENTS`) pindah ke `src/db/fixtures/` sebagai sumber seed; helper murni yang masih dipakai di-re-export; sisanya dihapus dari jalur UI.
+   - Tipe `BpkFinding`/konstanta status yang masih dipakai UI detail diarahkan ke tipe kanonik `Finding` bila perubahan berisiko kecil, kalau tidak ditunda ke fase lain.
+4. **Verifikasi teknis ulang**: `bun run typecheck`, `lint`, `format:check`, `build`, `test` (15 test tetap lulus + test baru untuk counter baris guard impor bila mengubah `import-core.ts`).
+5. **Merge**: `feat/admin-actions` → `dev` (fast-forward), verifikasi di `dev`, lalu `dev` → `main`. Jangan rebase — merge commit agar riwayat 5–9 commit tetap utuh. Branch `phase-4-detail-temuan`, `feat/data-infra-findings`, `feat/admin-actions` dibiarkan sebagai penanda.
+
+Non-goals Phase 8: deploy (Vercel/Docker/managed Postgres) — ditunda, dibahas terpisah saat dijadwalkan pemilik; tidak ada fitur baru (deadline/overdue, KAP/Management Letter, notifikasi, ekspor); tidak ada perubahan skema DB.
+
+Keputusan terkait pemilik produk (hasil grilling):
+- Ganti role di halaman akses cukup berlaku setelah reload; tambahkan pesan "perubahan terlihat setelah halaman dimuat ulang" bila belum ada.
+- Warning hash harus inline, bukan modal; counter memakai rumus `last_import_batch_id != batch ini` pada baris aktif, memisahkan kasus NULL.
 
 ---
 
