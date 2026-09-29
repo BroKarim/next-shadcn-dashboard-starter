@@ -18,7 +18,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 
-import { eq, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
@@ -36,12 +36,47 @@ export interface ImportSummary {
   failed: number;
   status: 'completed' | 'completed_with_errors' | 'failed';
   skipped: { rowNumber: number; reason: string }[];
+  /**
+   * Active findings with `last_import_batch_id` set but not matched by this
+   * file (D19: they are never deleted, only reported here). Rows that were
+   * never imported (`null`, e.g. from the seed) are deliberately excluded.
+   */
+  staleActiveRows: number;
 }
 
 export interface ImportActor {
   userId: string | null;
   email: string;
   name: string | null;
+}
+
+/** JSON-safe snapshot of the previous batch that used the same file bytes. */
+export interface ImportBatchHashMatch {
+  id: string;
+  fileName: string;
+  startedAt: string;
+  uploadedByEmail: string;
+}
+
+export function computeFileHash(buffer: Buffer): string {
+  return createHash('sha256').update(buffer).digest('hex');
+}
+
+/** Previous batch whose source file had the exact same bytes. */
+export async function findBatchByFileHash(fileHash: string): Promise<ImportBatchHashMatch | null> {
+  const [row] = await db
+    .select({
+      id: importBatches.id,
+      fileName: importBatches.fileName,
+      startedAt: importBatches.startedAt,
+      uploadedByEmail: importBatches.uploadedByEmail
+    })
+    .from(importBatches)
+    .where(eq(importBatches.fileHash, fileHash))
+    .orderBy(desc(importBatches.startedAt))
+    .limit(1);
+
+  return row ? { ...row, startedAt: row.startedAt.toISOString() } : null;
 }
 
 export function parseWorkbook(buffer: Buffer): Record<string, unknown>[] {
@@ -65,7 +100,7 @@ export async function applyImport(
   fileName: string,
   actor: ImportActor
 ): Promise<ImportSummary> {
-  const fileHash = createHash('sha256').update(buffer).digest('hex');
+  const fileHash = computeFileHash(buffer);
   const sheetRows = parseWorkbook(buffer);
 
   if (sheetRows.length === 0) {
@@ -239,6 +274,20 @@ export async function applyImport(
       })
       .where(eq(importBatches.id, batch.id));
 
+    // Active findings tagged with an older batch but absent from this file
+    // (never deleted — D19). Rows never imported stay out (owner correction).
+    const [stale] = await tx
+      .select({ jumlah: count() })
+      .from(findings)
+      .where(
+        and(
+          isNull(findings.deletedAt),
+          isNotNull(findings.lastImportBatchId),
+          ne(findings.lastImportBatchId, batch.id)
+        )
+      );
+    const staleActiveRows = Number(stale?.jumlah ?? 0);
+
     await tx.insert(activities).values({
       entityType: 'import_batch',
       entityId: batch.id,
@@ -250,7 +299,8 @@ export async function applyImport(
         updated,
         unchanged,
         failed,
-        skipped: skipped.length
+        skipped: skipped.length,
+        staleActiveRows
       },
       actorUserId: actor.userId,
       actorEmail: actor.email
@@ -265,7 +315,8 @@ export async function applyImport(
       unchanged,
       failed,
       status,
-      skipped
+      skipped,
+      staleActiveRows
     } satisfies ImportSummary;
   });
 }

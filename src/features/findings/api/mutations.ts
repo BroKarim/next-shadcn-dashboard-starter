@@ -5,6 +5,7 @@ import { mutationOptions } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/query-client';
 import type { FindingFormValues } from '../schemas/finding';
 import {
+  checkImportFileHash,
   createComment,
   createFinding,
   deleteAttachment,
@@ -51,6 +52,11 @@ export const restoreFindingMutation = mutationOptions({
 export const importFindingsXlsxMutation = mutationOptions({
   mutationFn: (formData: FormData) => importFindingsXlsx(formData),
   onSuccess: invalidateFindings
+});
+
+/** Duplicate-file preflight: read-only, never invalidates anything. */
+export const checkImportFileHashMutation = mutationOptions({
+  mutationFn: (fileHash: string) => checkImportFileHash(fileHash)
 });
 
 export const createCommentMutation = mutationOptions({

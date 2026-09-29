@@ -24,7 +24,7 @@ import { findingSchema, type FindingFormValues } from '../schemas/finding';
 import type { ActivityAction, FindingStatus } from './types';
 import { diffFields, hasChanges, type FieldDiff } from '../utils/diff';
 import { resolveFile } from '../utils/file-type';
-import { applyImport, type ImportSummary } from './import-core';
+import { applyImport, findBatchByFileHash, type ImportSummary } from './import-core';
 
 /** Attachment upload limit (task_plan.md §2/D25): 10 MB. */
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -274,6 +274,21 @@ export async function importFindingsXlsx(formData: FormData): Promise<ImportSumm
 
   const buffer = Buffer.from(await file.arrayBuffer());
   return applyImport(buffer, file.name, actor);
+}
+
+/**
+ * Non-blocking duplicate-file guard: the client hashes the selected file with
+ * `crypto.subtle` and asks whether those exact bytes were imported before.
+ * The UI shows an inline warning; the import itself is never blocked here.
+ */
+export async function checkImportFileHash(fileHash: string) {
+  await requireRole('editor');
+
+  if (!/^[0-9a-f]{64}$/.test(fileHash)) {
+    throw new ValidationError('Hash berkas tidak valid.');
+  }
+
+  return findBatchByFileHash(fileHash.toLowerCase());
 }
 
 // ---------------------------------------------------------------------------

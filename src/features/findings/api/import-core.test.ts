@@ -9,13 +9,15 @@
  * `server-only` guard in `src/db/client.ts` resolve to a no-op outside Next).
  */
 
+import { createHash } from 'node:crypto';
+
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { eq, inArray, like } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
 import { activities, findings, importBatches } from '@/db/schema';
-import { applyImport, type ImportActor } from './import-core';
+import { applyImport, findBatchByFileHash, type ImportActor } from './import-core';
 
 const actor: ImportActor = { userId: null, email: 'test-importer@local', name: 'Test Importer' };
 const PREFIX = 'TSTIMP';
@@ -42,6 +44,15 @@ const rowA = {
   'Tanggal Tindak Lanjut': '',
   'Tanggal Terakhir Update': '2035-01-10',
   'Unit Kerja': 'Biro Uji'
+};
+
+const rowB = {
+  ...rowA,
+  NoSatker: 'TSTIMP-H1',
+  Tahun: 2036,
+  'Kode Temuan': 'T-H2',
+  'Kode Rekomendasi': 'R-H2',
+  'Judul Pemeriksaan': 'Pemeriksaan uji guard hash'
 };
 
 async function cleanup() {
@@ -153,5 +164,40 @@ describe('applyImport', () => {
       .where(eq(importBatches.uploadedByEmail, actor.email));
     expect(batches.length).toBe(4);
     expect(batches.some((batch) => batch.created === 1 && batch.status === 'completed')).toBe(true);
+  }, 30_000);
+
+  test('matches previous batches by file hash and counts active rows not seen in the file', async () => {
+    // Isolate from the rows the first test created so counts stay exact.
+    await cleanup();
+
+    const buffer = buildWorkbook([rowB]);
+    const hash = createHash('sha256').update(buffer).digest('hex');
+
+    // 1) seed-style rows have `last_import_batch_id = null` ("never imported")
+    //    and must never be counted as stale.
+    const first = await applyImport(buffer, 'uji-hash-1.xlsx', actor);
+    expect(first.created).toBe(1);
+    expect(first.staleActiveRows).toBe(0);
+
+    // 2) the same bytes match the batch that imported them — guard is
+    //    a warning, so the re-import itself still succeeds.
+    const matched = await findBatchByFileHash(hash);
+    expect(matched?.fileName).toBe('uji-hash-1.xlsx');
+    expect(matched?.uploadedByEmail).toBe(actor.email);
+    expect(await findBatchByFileHash('f'.repeat(64))).toBeNull();
+
+    const second = await applyImport(buffer, 'uji-hash-2.xlsx', actor);
+    expect(second.unchanged).toBe(1);
+    expect(second.staleActiveRows).toBe(0);
+
+    // 3) a batch that never matches rowB leaves it "not seen in this file";
+    //    NULL `last_seen_in_import_at` stays out of the count (seed rows).
+    const third = await applyImport(
+      buildWorkbook([{ ...rowB, 'Kode Temuan': '' }]),
+      'uji-hash-3.xlsx',
+      actor
+    );
+    expect(third.status).toBe('failed');
+    expect(third.staleActiveRows).toBe(1);
   }, 30_000);
 });

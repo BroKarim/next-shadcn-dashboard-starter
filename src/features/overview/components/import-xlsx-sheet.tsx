@@ -15,7 +15,11 @@ import {
   SheetHeader,
   SheetTitle
 } from '@/components/ui/sheet';
-import { importFindingsXlsxMutation } from '@/features/findings/api/mutations';
+import {
+  checkImportFileHashMutation,
+  importFindingsXlsxMutation
+} from '@/features/findings/api/mutations';
+import type { ImportBatchHashMatch } from '@/features/findings/api/import-core';
 import { toUserMessage } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 
@@ -26,18 +30,31 @@ interface ImportXlsxSheetProps {
 
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
+/** Same bytes → same hash; keeps the client and the server comparable. */
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 /**
  * XLSX import sheet (D18): upload the SILAHAP export, the server action
  * upserts it in one transaction and returns a per-batch summary. The result
- * panel stays open so the operator can read skipped/failed rows.
+ * panel stays open so the operator can read skipped/failed rows. A duplicate
+ * file hash shows an inline warning only — the import is never blocked.
  */
 export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
   const [file, setFile] = React.useState<File | null>(null);
+  const [duplicateBatch, setDuplicateBatch] = React.useState<ImportBatchHashMatch | null>(null);
+
+  const hashCheck = useMutation({ ...checkImportFileHashMutation });
 
   const mutation = useMutation({
     ...importFindingsXlsxMutation,
     onSuccess: (summary) => {
       setFile(null);
+      setDuplicateBatch(null);
       toast.success(
         `Impor selesai: ${summary.created} baru, ${summary.updated} diperbarui, ${summary.unchanged} tidak berubah.`
       );
@@ -47,11 +64,44 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
 
   const summary = mutation.data;
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0] ?? null;
+    if (selected && selected.size > MAX_SIZE_BYTES) {
+      toast.error('Ukuran berkas melebihi 10 MB.');
+      event.target.value = '';
+      setFile(null);
+      setDuplicateBatch(null);
+      return;
+    }
+    setFile(selected);
+    setDuplicateBatch(null);
+    if (!selected) return;
+
+    // Cheap preflight: hash locally (no upload) and ask the server whether
+    // an import batch with these exact bytes already exists.
+    try {
+      const fileHash = await sha256Hex(await selected.arrayBuffer());
+      const matched = await hashCheck.mutateAsync(fileHash);
+      setDuplicateBatch(matched ?? null);
+    } catch (error) {
+      // A failed preflight must not block the import — just skip the warning.
+      console.error(error);
+      setDuplicateBatch(null);
+    }
+  };
+
+  const reset = () => {
+    setFile(null);
+    setDuplicateBatch(null);
+    hashCheck.reset();
+    mutation.reset();
+  };
+
   return (
     <Sheet
       open={open}
       onOpenChange={(next) => {
-        if (!next) mutation.reset();
+        if (!next) reset();
         onOpenChange(next);
       }}
     >
@@ -78,19 +128,23 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
                 'file:bg-muted file:text-foreground hover:file:bg-muted/80 rounded-md border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1.5'
               )}
               onChange={(event) => {
-                const selected = event.target.files?.[0] ?? null;
-                if (selected && selected.size > MAX_SIZE_BYTES) {
-                  toast.error('Ukuran berkas melebihi 10 MB.');
-                  event.target.value = '';
-                  setFile(null);
-                  return;
-                }
-                setFile(selected);
+                void handleFileChange(event);
               }}
             />
             {file && (
               <p className='text-muted-foreground text-xs'>
                 {file.name} · {(file.size / 1024).toFixed(0)} KB
+              </p>
+            )}
+            {duplicateBatch && (
+              <p
+                role='status'
+                className='bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-950/40 dark:border-amber-900 dark:text-amber-200 rounded-md border px-3 py-2 text-xs'
+              >
+                Berkas ini identik dengan batch{' '}
+                <span className='font-mono'>{duplicateBatch.id.slice(0, 8)}</span> (
+                {duplicateBatch.fileName}, oleh {duplicateBatch.uploadedByEmail}). Periksa apakah
+                ini memang revisi terbaru sebelum menjalankan impor.
               </p>
             )}
           </div>
@@ -118,6 +172,13 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
                   </dd>
                 </div>
               </dl>
+
+              {summary.staleActiveRows > 0 && (
+                <p className='bg-muted text-muted-foreground mt-3 rounded-md px-3 py-2 text-xs'>
+                  {summary.staleActiveRows} temuan aktif tidak ditemukan pada berkas ini. Mereka
+                  tidak dihapus — periksa apakah memang sudah tidak ada di SILAHAP.
+                </p>
+              )}
 
               {summary.skipped.length > 0 && (
                 <div className='mt-3'>
