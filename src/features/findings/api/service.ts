@@ -28,6 +28,7 @@ import {
   type FindingAttachment,
   type FindingComment,
   type FindingDetail,
+  type FindingFilterOptions,
   type FindingFilters,
   type FindingSort,
   type FindingsPage,
@@ -308,6 +309,34 @@ export async function getFindingsValueByYear(): Promise<YearlyValue[]> {
     .orderBy(asc(findings.tahun));
 
   return rows.map((row) => ({ tahun: row.tahun, totalNilai: row.totalNilai }));
+}
+
+/**
+ * Distinct filter option lists for the findings table — one SQL round-trip
+ * (array_agg with DISTINCT + ORDER BY) instead of three queries. Replaces the
+ * mock constants (`BPK_YEARS`, `BPK_KODE_TEMUAN`, `BPK_KODE_REKOMENDASI`).
+ */
+export async function getFindingFilterOptions(): Promise<FindingFilterOptions> {
+  await requireAuth();
+
+  const [row] = await db
+    .select({
+      tahun: sql<number[] | null>`array_agg(distinct ${findings.tahun} order by ${findings.tahun})`,
+      kodeTemuan: sql<
+        string[] | null
+      >`array_agg(distinct ${findings.kodeTemuan} order by ${findings.kodeTemuan})`,
+      kodeRekomendasi: sql<
+        string[] | null
+      >`array_agg(distinct ${findings.kodeRekomendasi} order by ${findings.kodeRekomendasi})`
+    })
+    .from(findings)
+    .where(isNull(findings.deletedAt));
+
+  return {
+    tahun: row?.tahun ?? [],
+    kodeTemuan: row?.kodeTemuan ?? [],
+    kodeRekomendasi: row?.kodeRekomendasi ?? []
+  };
 }
 
 export async function listRecentActivities(limit?: number): Promise<Activity[]> {

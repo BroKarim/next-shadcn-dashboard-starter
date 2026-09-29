@@ -1,10 +1,11 @@
 /**
- * BPK finding data for the overview dashboard.
+ * Seed fixture dataset for the findings feature (task_plan.md §4, D26).
  *
- * Pure data layer only: types, constants, dummy records and pure helpers.
- * The overview is still dummy-data driven (see task_plan.md) — no React, no
- * fetch, no React Query. Money is always stored as a plain number (rupiah) so
- * formatting stays a presentation concern.
+ * The dummy records used to live in the overview UI mock file
+ * (`bpk-overview-data.ts`); they now live here so the database seed has a
+ * stable source and the UI no longer imports mock data. Purely static data:
+ * no React, no imports. `BPK_ATTACHMENTS` was dropped — attachments are not
+ * seeded (D25).
  *
  * Dummy values are illustrative placeholders, not real BPK findings.
  */
@@ -43,31 +44,6 @@ export interface AdminActivity {
   detail?: string;
 }
 
-export interface BpkOverviewMetric {
-  key: 'total' | 'sesuai' | 'belumSesuai' | 'belumDitindaklanjuti';
-  label: string;
-  status: BpkStatus | null;
-  count: number;
-  totalNilai: number;
-}
-
-export interface BpkYearlyFinding {
-  tahun: number;
-  jumlah: number;
-}
-
-export type BpkFileType = 'pdf' | 'xlsx' | 'docx' | 'image';
-
-export interface BpkAttachment {
-  id: string;
-  findingId: string;
-  fileName: string;
-  fileType: BpkFileType;
-  sizeBytes: number;
-  uploadedAt: string;
-  uploadedBy: string;
-}
-
 export interface BpkComment {
   id: string;
   findingId: string;
@@ -76,26 +52,6 @@ export interface BpkComment {
   body: string;
   createdAt: string;
 }
-
-export const BPK_STATUSES: BpkStatus[] = [
-  'Sesuai Rekomendasi',
-  'Belum Sesuai',
-  'Belum Ditindaklanjuti',
-  'Sudah Ditindaklanjuti',
-  'Tidak Dapat Ditindaklanjuti'
-];
-
-/**
- * Default review order: findings that still need action first, closed findings
- * last. Used as the primary table sort and mirrored by the status filter list.
- */
-const STATUS_PRIORITY: Record<BpkStatus, number> = {
-  'Belum Ditindaklanjuti': 0,
-  'Belum Sesuai': 1,
-  'Sudah Ditindaklanjuti': 2,
-  'Sesuai Rekomendasi': 3,
-  'Tidak Dapat Ditindaklanjuti': 4
-};
 
 export const BPK_FINDINGS: BpkFinding[] = [
   {
@@ -585,54 +541,6 @@ export const BPK_ADMIN_ACTIVITIES: AdminActivity[] = [
   }
 ];
 
-export const BPK_ATTACHMENTS: BpkAttachment[] = [
-  {
-    id: 'DOC-001',
-    findingId: 'BPK-2024-001',
-    fileName: 'Bukti_Tindak_Lanjut.pdf',
-    fileType: 'pdf',
-    sizeBytes: 1_258_291,
-    uploadedAt: '2024-09-17T10:05:00+07:00',
-    uploadedBy: 'operator.bpk@usk.ac.id'
-  },
-  {
-    id: 'DOC-002',
-    findingId: 'BPK-2024-001',
-    fileName: 'Berita_Acara_Pemeriksaan.pdf',
-    fileType: 'pdf',
-    sizeBytes: 876_544,
-    uploadedAt: '2024-09-16T15:30:00+07:00',
-    uploadedBy: 'operator.bpk@usk.ac.id'
-  },
-  {
-    id: 'DOC-003',
-    findingId: 'BPK-2024-001',
-    fileName: 'Daftar_Inventaris_Ruangan.xlsx',
-    fileType: 'xlsx',
-    sizeBytes: 342_016,
-    uploadedAt: '2024-09-15T09:45:00+07:00',
-    uploadedBy: 'operator.bpk@usk.ac.id'
-  },
-  {
-    id: 'DOC-004',
-    findingId: 'BPK-2024-002',
-    fileName: 'Tanggapan_Satuan_Kerja.pdf',
-    fileType: 'pdf',
-    sizeBytes: 654_321,
-    uploadedAt: '2024-09-02T10:05:00+07:00',
-    uploadedBy: 'operator.bpk@usk.ac.id'
-  },
-  {
-    id: 'DOC-005',
-    findingId: 'BPK-2023-005',
-    fileName: 'Kertas_Kerja_Opname_Persediaan.pdf',
-    fileType: 'pdf',
-    sizeBytes: 2_104_832,
-    uploadedAt: '2024-06-30T08:50:00+07:00',
-    uploadedBy: 'operator.bpk@usk.ac.id'
-  }
-];
-
 export const BPK_COMMENTS: BpkComment[] = [
   {
     id: 'CMT-001',
@@ -659,154 +567,3 @@ export const BPK_COMMENTS: BpkComment[] = [
     createdAt: '2024-09-05T14:40:00+07:00'
   }
 ];
-
-function uniqueSorted<T>(values: T[]): T[] {
-  return [...new Set(values)].toSorted((a, b) => (a > b ? 1 : a < b ? -1 : 0));
-}
-
-/** Tahun pemeriksaan yang tersedia pada dataset dummy, urut menaik. */
-export const BPK_YEARS: number[] = uniqueSorted(BPK_FINDINGS.map((finding) => finding.tahun));
-
-/** Pilihan filter kode temuan, urut menaik. */
-export const BPK_KODE_TEMUAN: string[] = uniqueSorted(
-  BPK_FINDINGS.map((finding) => finding.kodeTemuan)
-);
-
-/** Pilihan filter kode rekomendasi, urut menaik. */
-export const BPK_KODE_REKOMENDASI: string[] = uniqueSorted(
-  BPK_FINDINGS.map((finding) => finding.kodeRekomendasi)
-);
-
-export function formatRupiah(value: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    maximumFractionDigits: 0
-  }).format(value);
-}
-
-/**
- * Tanggal/waktu dummy diformat pada zona waktu tetap supaya markup hasil render
- * server dan client identik (menghindari hydration mismatch).
- */
-export function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Jakarta'
-  }).format(new Date(value));
-}
-
-export function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('id-ID', {
-    dateStyle: 'medium',
-    timeZone: 'Asia/Jakarta'
-  }).format(new Date(value));
-}
-
-export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-
-  const units = ['KB', 'MB', 'GB'];
-  let size = bytes / 1024;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  const rounded = size >= 10 || Number.isInteger(size) ? Math.round(size) : size.toFixed(1);
-  return `${rounded} ${units[unitIndex]}`;
-}
-
-function sumNilaiTemuan(items: BpkFinding[]): number {
-  return items.reduce((total, finding) => total + finding.nilaiTemuan, 0);
-}
-
-export function getStatusPriority(status: BpkStatus): number {
-  return STATUS_PRIORITY[status];
-}
-
-export function getOverviewMetrics(findings: BpkFinding[]): BpkOverviewMetric[] {
-  const countByStatus = (status: BpkStatus) =>
-    findings.filter((finding) => finding.status === status);
-
-  const sesuai = countByStatus('Sesuai Rekomendasi');
-  const belumSesuai = countByStatus('Belum Sesuai');
-  const belumDitindaklanjuti = countByStatus('Belum Ditindaklanjuti');
-
-  return [
-    {
-      key: 'total',
-      label: 'Total Temuan',
-      status: null,
-      count: findings.length,
-      totalNilai: sumNilaiTemuan(findings)
-    },
-    {
-      key: 'sesuai',
-      label: 'Sesuai Rekomendasi',
-      status: 'Sesuai Rekomendasi',
-      count: sesuai.length,
-      totalNilai: sumNilaiTemuan(sesuai)
-    },
-    {
-      key: 'belumSesuai',
-      label: 'Belum Sesuai',
-      status: 'Belum Sesuai',
-      count: belumSesuai.length,
-      totalNilai: sumNilaiTemuan(belumSesuai)
-    },
-    {
-      key: 'belumDitindaklanjuti',
-      label: 'Belum Ditindaklanjuti',
-      status: 'Belum Ditindaklanjuti',
-      count: belumDitindaklanjuti.length,
-      totalNilai: sumNilaiTemuan(belumDitindaklanjuti)
-    }
-  ];
-}
-
-export function getFindingsByYear(findings: BpkFinding[]): BpkYearlyFinding[] {
-  const jumlahPerTahun = new Map<number, number>();
-
-  findings.forEach((finding) => {
-    jumlahPerTahun.set(finding.tahun, (jumlahPerTahun.get(finding.tahun) ?? 0) + 1);
-  });
-
-  return [...jumlahPerTahun.entries()]
-    .map(([tahun, jumlah]) => ({ tahun, jumlah }))
-    .toSorted((a, b) => a.tahun - b.tahun);
-}
-
-export function getActivitiesForFinding(
-  activities: AdminActivity[],
-  findingId: string,
-  limit?: number
-): AdminActivity[] {
-  const sorted = activities
-    .filter((activity) => activity.findingId === findingId)
-    .toSorted((a, b) => (a.occurredAt < b.occurredAt ? 1 : -1));
-
-  return limit === undefined ? sorted : sorted.slice(0, limit);
-}
-
-export function getFindingById(findings: BpkFinding[], id: string): BpkFinding | undefined {
-  return findings.find((finding) => finding.id === id);
-}
-
-export function getAttachmentsForFinding(
-  attachments: BpkAttachment[],
-  findingId: string
-): BpkAttachment[] {
-  return attachments
-    .filter((attachment) => attachment.findingId === findingId)
-    .toSorted((a, b) => (a.uploadedAt < b.uploadedAt ? 1 : -1));
-}
-
-export function getCommentsForFinding(comments: BpkComment[], findingId: string): BpkComment[] {
-  return comments
-    .filter((comment) => comment.findingId === findingId)
-    .toSorted((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
-}

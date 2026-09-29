@@ -5,6 +5,7 @@ import { getQueryClient } from '@/lib/query-client';
 import { searchParamsCache } from '@/lib/searchparams';
 import { getAppRoleWithBootstrap } from '@/lib/rbac';
 import {
+  findingFilterOptionsQueryOptions,
   findingsByYearQueryOptions,
   findingsQueryOptions,
   findingsValueByYearQueryOptions,
@@ -57,6 +58,7 @@ export default async function OverviewPage(props: PageProps) {
     queryClient.prefetchQuery(findingsQueryOptions(filters)),
     queryClient.prefetchQuery(overviewMetricsQueryOptions()),
     queryClient.prefetchQuery(findingsByYearQueryOptions()),
+    queryClient.prefetchQuery(findingFilterOptionsQueryOptions()),
     // Only the region the role will actually render is prefetched.
     isAdmin
       ? queryClient.prefetchQuery(recentActivitiesQueryOptions())

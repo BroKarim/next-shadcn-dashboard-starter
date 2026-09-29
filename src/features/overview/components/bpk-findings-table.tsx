@@ -65,7 +65,11 @@ import {
 } from '@/components/ui/table';
 import { DataTablePagination } from '@/components/ui/table/data-table-pagination';
 import { useDataTable } from '@/hooks/use-data-table';
-import { findingActivitiesOptions, findingsQueryOptions } from '@/features/findings/api/queries';
+import {
+  findingActivitiesOptions,
+  findingFilterOptionsQueryOptions,
+  findingsQueryOptions
+} from '@/features/findings/api/queries';
 import {
   restoreFindingMutation,
   softDeleteFindingMutation
@@ -81,7 +85,6 @@ import { formatDateTime, formatRupiah } from '@/features/findings/utils/format';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-import { BPK_KODE_REKOMENDASI, BPK_KODE_TEMUAN, BPK_YEARS } from './bpk-overview-data';
 import { StatusBadge } from './bpk-status-badge';
 import { BpkTableSkeleton } from './bpk-overview-skeletons';
 import { FindingFormSheet } from './finding-form-sheet';
@@ -556,6 +559,9 @@ export function BpkFindingsTable({
     'includeDeleted',
     parseAsBoolean.withDefault(false)
   );
+  // Distinct years/codes straight from the database (Phase 8 cleanup);
+  // prefetched server-side, refreshed by `findingKeys.all` invalidations.
+  const { data: filterOptions } = useQuery(findingFilterOptionsQueryOptions());
 
   const filters: FindingFilters = React.useMemo(
     () => ({
@@ -681,7 +687,10 @@ export function BpkFindingsTable({
               <Select
                 items={[
                   { value: ALL_VALUE, label: 'Semua tahun' },
-                  ...BPK_YEARS.map((tahun) => ({ value: `${tahun}`, label: `${tahun}` }))
+                  ...(filterOptions?.tahun ?? []).map((tahun) => ({
+                    value: `${tahun}`,
+                    label: `${tahun}`
+                  }))
                 ]}
                 value={params.tahun ? `${params.tahun}` : ALL_VALUE}
                 onValueChange={(value) =>
@@ -693,7 +702,7 @@ export function BpkFindingsTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_VALUE}>Semua tahun</SelectItem>
-                  {BPK_YEARS.map((tahun) => (
+                  {(filterOptions?.tahun ?? []).map((tahun) => (
                     <SelectItem key={tahun} value={`${tahun}`}>
                       {tahun}
                     </SelectItem>
@@ -708,7 +717,7 @@ export function BpkFindingsTable({
               <Select
                 items={[
                   { value: ALL_VALUE, label: 'Semua kode' },
-                  ...BPK_KODE_TEMUAN.map((kode) => ({ value: kode, label: kode }))
+                  ...(filterOptions?.kodeTemuan ?? []).map((kode) => ({ value: kode, label: kode }))
                 ]}
                 value={params.kodeTemuan ?? ALL_VALUE}
                 onValueChange={(value) =>
@@ -720,7 +729,7 @@ export function BpkFindingsTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_VALUE}>Semua kode</SelectItem>
-                  {BPK_KODE_TEMUAN.map((kode) => (
+                  {(filterOptions?.kodeTemuan ?? []).map((kode) => (
                     <SelectItem key={kode} value={kode}>
                       {kode}
                     </SelectItem>
@@ -735,7 +744,10 @@ export function BpkFindingsTable({
               <Select
                 items={[
                   { value: ALL_VALUE, label: 'Semua kode' },
-                  ...BPK_KODE_REKOMENDASI.map((kode) => ({ value: kode, label: kode }))
+                  ...(filterOptions?.kodeRekomendasi ?? []).map((kode) => ({
+                    value: kode,
+                    label: kode
+                  }))
                 ]}
                 value={params.kodeRekomendasi ?? ALL_VALUE}
                 onValueChange={(value) =>
@@ -750,7 +762,7 @@ export function BpkFindingsTable({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_VALUE}>Semua kode</SelectItem>
-                  {BPK_KODE_REKOMENDASI.map((kode) => (
+                  {(filterOptions?.kodeRekomendasi ?? []).map((kode) => (
                     <SelectItem key={kode} value={kode}>
                       {kode}
                     </SelectItem>

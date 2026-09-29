@@ -130,6 +130,13 @@ export interface YearlyValue {
   totalNilai: string;
 }
 
+/** Distinct filter option lists, sourced from the database (Phase 8 cleanup). */
+export interface FindingFilterOptions {
+  tahun: number[];
+  kodeTemuan: string[];
+  kodeRekomendasi: string[];
+}
+
 export type ActivityAction =
   | 'Impor XLSX'
   | 'Tambah Temuan'

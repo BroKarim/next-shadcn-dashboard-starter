@@ -4,8 +4,8 @@
  *
  * Run with `bun run src/db/seed.ts`.
  *
- * - Source: the dummy dataset in `src/features/overview/components/bpk-overview-data.ts`
- *   (the single source of truth until the follow-up cleanup phase).
+ * - Source: the dummy dataset in `src/db/fixtures/findings.ts` (the seed
+ *   fixture moved out of the UI mock during the Phase 8 cleanup).
  * - Non-destructive upsert: `INSERT ... ON CONFLICT (natural key)
  *   WHERE deleted_at IS NULL DO NOTHING`. Existing rows are never updated,
  *   rows are never deleted, and real edits survive a re-run.
@@ -29,7 +29,7 @@ import {
   BPK_FINDINGS,
   type AdminActivity,
   type BpkFinding
-} from '../features/overview/components/bpk-overview-data';
+} from './fixtures/findings';
 import { activities, comments, findings } from './schema';
 
 if (!process.env.DATABASE_URL) {

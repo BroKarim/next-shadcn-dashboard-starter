@@ -4,6 +4,7 @@ import {
   getFindingsByYear,
   getFindingsValueByYear,
   getFindingDetail,
+  getFindingFilterOptions,
   getOverviewMetrics,
   listFindingActivities,
   listFindings,
@@ -18,6 +19,7 @@ export const findingKeys = {
   metrics: () => [...findingKeys.all, 'metrics'] as const,
   yearly: () => [...findingKeys.all, 'yearly'] as const,
   yearlyValue: () => [...findingKeys.all, 'yearly-value'] as const,
+  filterOptions: () => [...findingKeys.all, 'filter-options'] as const,
   activities: (limit?: number) => [...findingKeys.all, 'activities', limit ?? 'all'] as const,
   findingActivities: (id: string, limit?: number) =>
     [...findingKeys.all, 'finding-activities', id, limit] as const
@@ -45,6 +47,13 @@ export const findingsValueByYearQueryOptions = () =>
   queryOptions({
     queryKey: findingKeys.yearlyValue(),
     queryFn: getFindingsValueByYear
+  });
+
+/** Non-suspense — the filter selects read it while the card stays mounted. */
+export const findingFilterOptionsQueryOptions = () =>
+  queryOptions({
+    queryKey: findingKeys.filterOptions(),
+    queryFn: getFindingFilterOptions
   });
 
 export const recentActivitiesQueryOptions = (limit?: number) =>
