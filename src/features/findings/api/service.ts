@@ -398,3 +398,29 @@ export async function getFindingDetail(id: string): Promise<FindingDetail> {
     activities: activityRows.map(toActivityDTO)
   };
 }
+
+/** Single attachment row for the authenticated download route. */
+export async function getAttachmentById(id: string): Promise<{
+  id: string;
+  fileName: string;
+  storagePath: string;
+  mimeType: string | null;
+} | null> {
+  await requireAuth();
+
+  if (!id) {
+    return null;
+  }
+
+  const [row] = await db
+    .select({
+      id: attachments.id,
+      fileName: attachments.fileName,
+      storagePath: attachments.storagePath,
+      mimeType: attachments.mimeType
+    })
+    .from(attachments)
+    .where(eq(attachments.id, id));
+
+  return row ?? null;
+}

@@ -1,12 +1,15 @@
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { notFound } from 'next/navigation';
 
 import PageContainer from '@/components/layout/page-container';
-import { Icons } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { BpkFindingDetail } from '@/features/overview/components/bpk-finding-detail';
-import { BPK_FINDINGS, getFindingById } from '@/features/overview/components/bpk-overview-data';
 import { StatusBadge } from '@/features/overview/components/bpk-status-badge';
-import { canManageFindings, MANAGE_ACTIONS_DISABLED_REASON } from '@/features/overview/permissions';
+import { FindingDetailActions } from '@/features/overview/components/finding-detail-actions';
+import { findingDetailOptions } from '@/features/findings/api/queries';
+import { NotFoundError } from '@/lib/errors';
+import { getQueryClient } from '@/lib/query-client';
+import { getAppRoleWithBootstrap } from '@/lib/rbac';
 
 export const metadata = {
   title: 'Dashboard : Detail Temuan'
@@ -16,29 +19,50 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function TemuanDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const finding = getFindingById(BPK_FINDINGS, id);
+  const queryClient = getQueryClient();
+  const appRole = await getAppRoleWithBootstrap();
+  const canManage = appRole !== 'user';
 
-  if (!finding) notFound();
+  let detail;
+  try {
+    // `fetchQuery` fills the cache for the client component *and* gives this
+    // page the header data (title, status) without a second round trip.
+    detail = await queryClient.fetchQuery(findingDetailOptions(id));
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      notFound();
+    }
+    throw error;
+  }
 
   return (
     <PageContainer
-      pageTitle={`Detail Temuan ${finding.id}`}
-      pageDescription={finding.judulPemeriksaan}
+      pageTitle={`Detail Temuan ${detail.finding.kodeDisplay}`}
+      pageDescription={detail.finding.judulPemeriksaan}
       pageHeaderAction={
         <div className='flex items-center gap-2'>
-          <StatusBadge status={finding.status} />
-          <Button
-            variant='outline'
-            disabled={!canManageFindings}
-            title={canManageFindings ? undefined : MANAGE_ACTIONS_DISABLED_REASON}
-          >
-            <Icons.edit className='size-4' />
-            Edit Temuan
-          </Button>
+          <StatusBadge status={detail.finding.status} />
+          {canManage ? (
+            <FindingDetailActions finding={detail.finding} isAdmin={appRole === 'admin'} />
+          ) : (
+            <Button
+              variant='outline'
+              disabled
+              title='Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+            >
+              Edit Temuan
+            </Button>
+          )}
         </div>
       }
     >
-      <BpkFindingDetail finding={finding} />
+      <HydrationBoundary state={dehydrate(queryClient)}>
+        <BpkFindingDetail
+          kodeDisplay={detail.finding.kodeDisplay}
+          canManage={canManage}
+          canDeleteComment={appRole === 'admin'}
+        />
+      </HydrationBoundary>
     </PageContainer>
   );
 }

@@ -11,20 +11,24 @@
  * actions for future features.
  */
 
-import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { mkdir, unlink, writeFile } from 'node:fs/promises';
 
 import { and, eq, isNull, isNotNull, sql } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
-import { activities, findings, importBatches } from '@/db/schema';
+import { activities, attachments, comments, findings, importBatches } from '@/db/schema';
 import { NotFoundError, ValidationError } from '@/lib/errors';
 import { requireActorIdentity, requireRole } from '@/lib/rbac';
 import { findingSchema, type FindingFormValues } from '../schemas/finding';
 import type { ActivityAction, FindingStatus } from './types';
 import { diffFields, hasChanges, type FieldDiff } from '../utils/diff';
+import { resolveFile } from '../utils/file-type';
 import { diffOfficialFields, importIdentity, mapSheetRows } from '../utils/import-xlsx';
+
+/** Attachment upload limit (task_plan.md §2/D25): 10 MB. */
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 interface Actor {
   userId: string;
@@ -476,4 +480,157 @@ export async function importFindingsXlsx(formData: FormData): Promise<ImportSumm
   });
 
   return summary;
+}
+
+// ---------------------------------------------------------------------------
+// Discussion comments (D14): separate from `activities` — writing a comment
+// never touches the activity timeline. Only editor/admin may comment.
+// ---------------------------------------------------------------------------
+
+export async function createComment(kodeDisplay: string, body: string): Promise<{ id: string }> {
+  await requireRole('editor');
+  const actor = await requireActorIdentity();
+  const text = body.trim();
+
+  if (text.length === 0) {
+    throw new ValidationError('Komentar tidak boleh kosong.');
+  }
+  if (text.length > 4000) {
+    throw new ValidationError('Komentar terlalu panjang (maks 4000 karakter).');
+  }
+
+  return db.transaction(async (tx) => {
+    const [finding] = await tx
+      .select({ id: findings.id })
+      .from(findings)
+      .where(and(eq(findings.kodeDisplay, kodeDisplay), isNull(findings.deletedAt)));
+
+    if (!finding) {
+      throw new NotFoundError(`Temuan ${kodeDisplay} tidak ditemukan.`);
+    }
+
+    const [row] = await tx
+      .insert(comments)
+      .values({
+        findingId: finding.id,
+        authorUserId: actor.userId,
+        authorEmail: actor.email,
+        authorName: actor.name,
+        body: text
+      })
+      .returning({ id: comments.id });
+
+    return { id: row.id };
+  });
+}
+
+export async function deleteComment(commentId: string): Promise<{ deleted: boolean }> {
+  const userId = await requireRole('editor');
+  await requireActorIdentity();
+
+  return db.transaction(async (tx) => {
+    const [row] = await tx.select().from(comments).where(eq(comments.id, commentId));
+    if (!row) {
+      throw new NotFoundError('Komentar tidak ditemukan.');
+    }
+
+    // Deleting someone else's comment requires admin (editor may delete own).
+    if (row.authorUserId !== userId) {
+      await requireRole('admin');
+    }
+
+    await tx.delete(comments).where(eq(comments.id, commentId));
+    return { deleted: true };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Attachments: metadata in Postgres, bytes under `storage/attachments/`
+// (outside `public/`). Served through an authenticated route handler.
+// ---------------------------------------------------------------------------
+
+export async function uploadAttachment(
+  kodeDisplay: string,
+  formData: FormData
+): Promise<{ id: string; fileName: string }> {
+  await requireRole('editor');
+  const actor = await requireActorIdentity();
+
+  const file = formData.get('file');
+  if (!(file instanceof File)) {
+    throw new ValidationError('Berkas wajib dipilih.');
+  }
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    throw new ValidationError('Ukuran berkas melebihi 10 MB.');
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const resolved = resolveFile(buffer, file.name);
+  if (!resolved) {
+    throw new ValidationError('Jenis berkas tidak didukung (pdf, xlsx, docx, atau gambar).');
+  }
+
+  return db.transaction(async (tx) => {
+    const [finding] = await tx
+      .select({ id: findings.id })
+      .from(findings)
+      .where(and(eq(findings.kodeDisplay, kodeDisplay), isNull(findings.deletedAt)));
+
+    if (!finding) {
+      throw new NotFoundError(`Temuan ${kodeDisplay} tidak ditemukan.`);
+    }
+
+    const storagePath = `storage/attachments/${finding.id}/${randomUUID()}.${resolved.extension}`;
+    await mkdir(`storage/attachments/${finding.id}`, { recursive: true });
+    await writeFile(storagePath, buffer);
+
+    const [row] = await tx
+      .insert(attachments)
+      .values({
+        findingId: finding.id,
+        fileName: file.name,
+        storagePath,
+        fileType: resolved.fileType,
+        mimeType: resolved.mimeType,
+        sizeBytes: file.size,
+        uploadedByUserId: actor.userId,
+        uploadedByEmail: actor.email
+      })
+      .returning({ id: attachments.id });
+
+    await logActivity(tx, actor, {
+      entityId: finding.id,
+      action: 'Unggah Berkas',
+      metadata: { fileName: file.name, fileType: resolved.fileType, sizeBytes: file.size }
+    });
+
+    return { id: row.id, fileName: file.name };
+  });
+}
+
+export async function deleteAttachment(attachmentId: string): Promise<{ deleted: boolean }> {
+  await requireRole('editor');
+  const actor = await requireActorIdentity();
+
+  return db.transaction(async (tx) => {
+    const [row] = await tx.select().from(attachments).where(eq(attachments.id, attachmentId));
+    if (!row) {
+      throw new NotFoundError('Lampiran tidak ditemukan.');
+    }
+
+    await tx.delete(attachments).where(eq(attachments.id, attachmentId));
+    try {
+      await unlink(row.storagePath);
+    } catch {
+      // The row is gone; a missing file is not worth failing the request for.
+    }
+
+    await logActivity(tx, actor, {
+      entityId: row.findingId,
+      action: 'Unggah Berkas',
+      metadata: { fileName: row.fileName, deleted: true }
+    });
+
+    return { deleted: true };
+  });
 }

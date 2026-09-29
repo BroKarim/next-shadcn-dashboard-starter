@@ -5,11 +5,15 @@ import { mutationOptions } from '@tanstack/react-query';
 import { getQueryClient } from '@/lib/query-client';
 import type { FindingFormValues } from '../schemas/finding';
 import {
+  createComment,
   createFinding,
+  deleteAttachment,
+  deleteComment,
   importFindingsXlsx,
   restoreFinding,
   softDeleteFinding,
-  updateFinding
+  updateFinding,
+  uploadAttachment
 } from './actions';
 import { findingKeys } from './queries';
 
@@ -46,5 +50,27 @@ export const restoreFindingMutation = mutationOptions({
 
 export const importFindingsXlsxMutation = mutationOptions({
   mutationFn: (formData: FormData) => importFindingsXlsx(formData),
+  onSuccess: invalidateFindings
+});
+
+export const createCommentMutation = mutationOptions({
+  mutationFn: ({ kodeDisplay, body }: { kodeDisplay: string; body: string }) =>
+    createComment(kodeDisplay, body),
+  onSuccess: invalidateFindings
+});
+
+export const deleteCommentMutation = mutationOptions({
+  mutationFn: (commentId: string) => deleteComment(commentId),
+  onSuccess: invalidateFindings
+});
+
+export const uploadAttachmentMutation = mutationOptions({
+  mutationFn: ({ kodeDisplay, formData }: { kodeDisplay: string; formData: FormData }) =>
+    uploadAttachment(kodeDisplay, formData),
+  onSuccess: invalidateFindings
+});
+
+export const deleteAttachmentMutation = mutationOptions({
+  mutationFn: (attachmentId: string) => deleteAttachment(attachmentId),
   onSuccess: invalidateFindings
 });
