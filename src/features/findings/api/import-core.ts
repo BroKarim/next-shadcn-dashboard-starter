@@ -18,7 +18,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 
-import { and, count, desc, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm';
+import { and, count, desc, eq, isNotNull, isNull, ne, notInArray, sql } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
@@ -72,7 +72,8 @@ export async function findBatchByFileHash(fileHash: string): Promise<ImportBatch
       uploadedByEmail: importBatches.uploadedByEmail
     })
     .from(importBatches)
-    .where(eq(importBatches.fileHash, fileHash))
+    // A `failed` batch landed nothing, so it is not a meaningful duplicate.
+    .where(and(eq(importBatches.fileHash, fileHash), ne(importBatches.status, 'failed')))
     .orderBy(desc(importBatches.startedAt))
     .limit(1);
 
@@ -145,9 +146,16 @@ export async function applyImport(
     let unchanged = 0;
     let failed = 0;
     const failures: string[] = skipped.map((row) => `Baris ${row.rowNumber}: ${row.reason}`);
+    // Existing rows this file attempted to touch. Rows whose savepoint rolled
+    // back keep their previous `last_import_batch_id`, but they were seen —
+    // counting them as "not in this file" would be wrong.
+    const attemptedExistingIds: string[] = [];
 
     for (const record of records) {
       const existing = byIdentity.get(importIdentity(record));
+      if (existing) {
+        attemptedExistingIds.push(existing.id);
+      }
 
       try {
         if (!existing) {
@@ -276,16 +284,18 @@ export async function applyImport(
 
     // Active findings tagged with an older batch but absent from this file
     // (never deleted — D19). Rows never imported stay out (owner correction).
+    const staleConditions = [
+      isNull(findings.deletedAt),
+      isNotNull(findings.lastImportBatchId),
+      ne(findings.lastImportBatchId, batch.id)
+    ];
+    if (attemptedExistingIds.length > 0) {
+      staleConditions.push(notInArray(findings.id, attemptedExistingIds));
+    }
     const [stale] = await tx
       .select({ jumlah: count() })
       .from(findings)
-      .where(
-        and(
-          isNull(findings.deletedAt),
-          isNotNull(findings.lastImportBatchId),
-          ne(findings.lastImportBatchId, batch.id)
-        )
-      );
+      .where(and(...staleConditions));
     const staleActiveRows = Number(stale?.jumlah ?? 0);
 
     await tx.insert(activities).values({

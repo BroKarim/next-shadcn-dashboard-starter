@@ -12,7 +12,7 @@
 import { createHash } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { eq, inArray, like } from 'drizzle-orm';
+import { and, count, eq, inArray, isNotNull, isNull, like } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
@@ -170,6 +170,14 @@ describe('applyImport', () => {
     // Isolate from the rows the first test created so counts stay exact.
     await cleanup();
 
+    // Baseline of active imported rows outside this test's data — assertions
+    // use deltas so rows imported by hand in the dev database never break it.
+    const [baselineRow] = await db
+      .select({ jumlah: count() })
+      .from(findings)
+      .where(and(isNull(findings.deletedAt), isNotNull(findings.lastImportBatchId)));
+    const baseline = Number(baselineRow.jumlah);
+
     const buffer = buildWorkbook([rowB]);
     const hash = createHash('sha256').update(buffer).digest('hex');
 
@@ -177,7 +185,7 @@ describe('applyImport', () => {
     //    and must never be counted as stale.
     const first = await applyImport(buffer, 'uji-hash-1.xlsx', actor);
     expect(first.created).toBe(1);
-    expect(first.staleActiveRows).toBe(0);
+    expect(first.staleActiveRows).toBe(baseline);
 
     // 2) the same bytes match the batch that imported them — guard is
     //    a warning, so the re-import itself still succeeds.
@@ -188,7 +196,7 @@ describe('applyImport', () => {
 
     const second = await applyImport(buffer, 'uji-hash-2.xlsx', actor);
     expect(second.unchanged).toBe(1);
-    expect(second.staleActiveRows).toBe(0);
+    expect(second.staleActiveRows).toBe(baseline);
 
     // 3) a batch that never matches rowB leaves it "not seen in this file";
     //    NULL `last_seen_in_import_at` stays out of the count (seed rows).
@@ -198,6 +206,6 @@ describe('applyImport', () => {
       actor
     );
     expect(third.status).toBe('failed');
-    expect(third.staleActiveRows).toBe(1);
+    expect(third.staleActiveRows).toBe(baseline + 1);
   }, 30_000);
 });

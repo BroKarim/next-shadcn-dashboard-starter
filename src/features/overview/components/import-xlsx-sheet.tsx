@@ -47,6 +47,10 @@ async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
 export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [duplicateBatch, setDuplicateBatch] = React.useState<ImportBatchHashMatch | null>(null);
+  // Monotonic token so a slow hash check for an earlier selection cannot
+  // resurrect a warning after the user picks another file or closes the sheet.
+  const requestRef = React.useRef(0);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
   const hashCheck = useMutation({ ...checkImportFileHashMutation });
 
@@ -55,6 +59,7 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
     onSuccess: (summary) => {
       setFile(null);
       setDuplicateBatch(null);
+      if (inputRef.current) inputRef.current.value = '';
       toast.success(
         `Impor selesai: ${summary.created} baru, ${summary.updated} diperbarui, ${summary.unchanged} tidak berubah.`
       );
@@ -66,9 +71,10 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const selected = event.target.files?.[0] ?? null;
+    event.target.value = '';
+    const token = ++requestRef.current;
     if (selected && selected.size > MAX_SIZE_BYTES) {
       toast.error('Ukuran berkas melebihi 10 MB.');
-      event.target.value = '';
       setFile(null);
       setDuplicateBatch(null);
       return;
@@ -81,16 +87,19 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
     // an import batch with these exact bytes already exists.
     try {
       const fileHash = await sha256Hex(await selected.arrayBuffer());
+      if (token !== requestRef.current) return;
       const matched = await hashCheck.mutateAsync(fileHash);
+      if (token !== requestRef.current) return;
       setDuplicateBatch(matched ?? null);
     } catch (error) {
       // A failed preflight must not block the import — just skip the warning.
       console.error(error);
-      setDuplicateBatch(null);
     }
   };
 
   const reset = () => {
+    requestRef.current += 1;
+    if (inputRef.current) inputRef.current.value = '';
     setFile(null);
     setDuplicateBatch(null);
     hashCheck.reset();
@@ -120,6 +129,7 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
               Berkas ekspor (.xlsx / .xls, maks 10 MB)
             </label>
             <input
+              ref={inputRef}
               id='import-xlsx-file'
               type='file'
               accept='.xlsx,.xls'
@@ -127,9 +137,7 @@ export function ImportXlsxSheet({ open, onOpenChange }: ImportXlsxSheetProps) {
               className={cn(
                 'file:bg-muted file:text-foreground hover:file:bg-muted/80 rounded-md border p-2 text-sm file:mr-3 file:rounded-md file:border-0 file:px-3 file:py-1.5'
               )}
-              onChange={(event) => {
-                void handleFileChange(event);
-              }}
+              onChange={handleFileChange}
             />
             {file && (
               <p className='text-muted-foreground text-xs'>

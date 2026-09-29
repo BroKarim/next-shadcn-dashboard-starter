@@ -284,11 +284,12 @@ export async function importFindingsXlsx(formData: FormData): Promise<ImportSumm
 export async function checkImportFileHash(fileHash: string) {
   await requireRole('editor');
 
-  if (!/^[0-9a-f]{64}$/.test(fileHash)) {
+  const normalized = fileHash.toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(normalized)) {
     throw new ValidationError('Hash berkas tidak valid.');
   }
 
-  return findBatchByFileHash(fileHash.toLowerCase());
+  return findBatchByFileHash(normalized);
 }
 
 // ---------------------------------------------------------------------------
