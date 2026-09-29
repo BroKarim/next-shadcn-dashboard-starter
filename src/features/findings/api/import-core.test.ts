@@ -10,7 +10,7 @@
  */
 
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { eq, like, sql } from 'drizzle-orm';
+import { eq, inArray, like } from 'drizzle-orm';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
@@ -45,15 +45,27 @@ const rowA = {
 };
 
 async function cleanup() {
+  // Batch ids first: an import's audit activity references the batch, not a
+  // finding, so it must be removed before the batch row disappears.
+  const batches = await db
+    .select({ id: importBatches.id })
+    .from(importBatches)
+    .where(eq(importBatches.uploadedByEmail, actor.email));
+  const batchIds = batches.map((batch) => batch.id);
+  if (batchIds.length > 0) {
+    await db.delete(activities).where(inArray(activities.entityId, batchIds));
+  }
+
   const rows = await db
     .select({ id: findings.id })
     .from(findings)
     .where(like(findings.noSatker, `${PREFIX}%`));
   const ids = rows.map((row) => row.id);
   if (ids.length > 0) {
-    await db.delete(activities).where(sql`${activities.entityId} in ${ids}`);
-    await db.delete(findings).where(sql`${findings.id} in ${ids}`);
+    await db.delete(activities).where(inArray(activities.entityId, ids));
+    await db.delete(findings).where(inArray(findings.id, ids));
   }
+
   await db.delete(importBatches).where(eq(importBatches.uploadedByEmail, actor.email));
 }
 

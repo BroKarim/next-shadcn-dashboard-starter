@@ -342,9 +342,13 @@ src/features/<name>/api/
   types.ts      ← Type contract (response shapes, filters, payloads)
   service.ts    ← Data access functions (the ONE file to swap for your backend)
   queries.ts    ← React Query options + query key factories (stable, never changes)
+  mutations.ts  ← Client mutationOptions (invalidate keys) when the feature writes
+  actions.ts    ← 'use server' write actions (requireRole + transaction + activity log)
 ```
 
 **`service.ts` is the only file you modify when connecting to a real backend.** Queries and components import from it — they never change.
+
+Live example (findings feature, PostgreSQL + Drizzle): `src/features/findings/api/` — `service.ts` reads, `actions.ts` server actions, `import-core.ts` the testable transactional core, `queries.ts` + `mutations.ts` for React Query. See `docs/data.md`.
 
 #### Backend Patterns
 
@@ -463,20 +467,16 @@ Exception: the BPK overview table (`features/overview/components/bpk-overview.ts
 
 ## Testing Strategy
 
-**Note**: This project does not include a test suite by default. Consider adding:
+The project uses **Bun's built-in test runner** (`bun run test` → `bun test --conditions=react-server`):
 
-- **Unit tests**: Vitest or Jest for utilities and hooks
-- **Component tests**: React Testing Library for UI components
-- **E2E tests**: Playwright for critical user flows
+- `src/test-setup.ts` is preloaded via `bunfig.toml` and loads `.env.local`, so DB integration tests can run.
+- `--conditions=react-server` makes the `server-only` guard (used by `src/db/client.ts`) resolve to its no-op build outside Next.js.
+- Unit tests are colocated next to the code they cover (`*.test.ts`), e.g. `src/features/findings/utils/*.test.ts`.
+- `src/features/findings/api/import-core.test.ts` is an **integration test**: it runs the real import transaction against the local database and cleans up after itself (it needs `DATABASE_URL`).
 
-Recommended test locations:
+Prefer testing pure helpers (mapping, diffing, parsing, file sniffing) and the transactional core behind server actions; server actions themselves are thin auth wrappers.
 
-```
-/src
-  /__tests__           # Unit tests
-  /features/*/tests    # Feature tests
-/e2e                   # Playwright tests
-```
+Component/E2E coverage (React Testing Library, Playwright) is still open — recommended locations remain `/src/__tests__` and `/e2e`.
 
 ---
 

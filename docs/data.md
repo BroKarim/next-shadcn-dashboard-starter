@@ -48,3 +48,33 @@ src/features/findings/utils/  formatRupiah (string) dst.
 - **Role aplikasi**: `users.role` adalah sumber kebenaran; `INITIAL_ADMIN_EMAILS` hanya berpengaruh saat baris user pertama dibuat.
 - **Server actions** (`'use server'`) wajib memanggil `requireRole()` sebelum mutasi; return = data polos; error domain diterjemahkan `toUserMessage()`.
 - **Prefetch halaman** memakai `await Promise.all([...])` sebelum `dehydrate()` (deviasi disengaja dari pola `void` — lihat D32).
+
+## Mutations, impor, dan lampiran (Phase 5)
+
+| Modul | Isi |
+| --- | --- |
+| `src/features/findings/api/actions.ts` | Server actions tulis: `createFinding`, `updateFinding`, `softDeleteFinding`, `restoreFinding` (admin), `createComment`, `deleteComment`, `uploadAttachment`, `deleteAttachment`, `importFindingsXlsx`. Semua memanggil `requireRole()` lalu menulis dalam transaksi + mencatat `activities`. |
+| `src/features/findings/api/import-core.ts` | Inti transaksi impor (`applyImport`) — dipisah supaya bisa diuji integrasi tanpa Clerk. Hanya 6 kolom resmi SILAHAP yang ditimpa; baris cocok selalu diperbarui `last_seen_in_import_at` + `last_import_batch_id`. |
+| `src/features/findings/api/mutations.ts` | `mutationOptions` sisi klien (invalidate `findingKeys.all`). |
+| `src/features/access/**` | Halaman **Akses & Peran** (`/dashboard/access`, admin-only) untuk mengubah role pengguna; perubahan dicatat sebagai `Perbarui Peran Pengguna`. |
+| `src/app/api/attachments/[id]/route.ts` | Route handler terautentikasi untuk pratinjau/unduh lampiran; `401` bila belum login, `404` bila baris/berkas tidak ada. |
+
+Penyimpanan berkas (di luar `public/`, isi di-ignore git):
+
+```
+storage/imports/{batchId}.xlsx
+storage/attachments/{findingId}/{uuid}.{ext}   # metadata saja di DB
+```
+
+Aturan yang diuji: impor idempotent, kolom internal (`unit_kerja`, komentar, lampiran) tidak pernah tertimpa, diff `status`/`nilai_temuan` tercatat di `activities`, dan baris gagal diisolasi oleh savepoint sehingga sisa berkas tetap masuk.
+
+## Testing
+
+```bash
+bun run test        # = bun test --conditions=react-server
+```
+
+- `src/test-setup.ts` (preload via `bunfig.toml`) memuat `.env.local`, jadi test integrasi memakai PostgreSQL lokal yang sama.
+- Unit: `src/features/findings/utils/*.test.ts` (diff aktivitas, mapping impor, sniffing tipe berkas).
+- Integrasi: `src/features/findings/api/import-core.test.ts` — menjalankan transaksi impor sungguhan dan membersihkan seluruh datanya sendiri (satker `TSTIMP`, batch atas nama `test-importer@local`).
+- `--conditions=react-server` diperlukan agar `server-only` di `src/db/client.ts` menjadi no-op di luar Next.js.

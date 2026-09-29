@@ -51,18 +51,25 @@ Status: `complete`
 
 ### Phase 5 — Admin actions dan audit timeline UI
 
-Status: `pending`
+Status: `complete`
 
-- Siapkan UI impor XLSX, tambah temuan manual, edit, hapus, unggah berkas, dan pengaturan akses.
-- Terapkan permission untuk aksi yang mengubah data.
+- Form tambah/edit temuan (TanStack Form + Zod, `requireRole('editor')`), soft delete + restore (admin).
+- Impor XLSX (SheetJS) satu transaksi + savepoint per baris, diff kolom resmi saja, ringkasan `import_batches`, berkas sumber di `storage/imports/`.
+- Lampiran: unggah (validasi magic bytes, maks 10 MB) ke `storage/attachments/`, pratinjau/unduh lewat route handler terautentikasi, hapus lampiran.
+- Diskusi komentar (editor/admin) terpisah dari `activities`; halaman detail membaca data DB (`getFindingDetail`).
+- Pengaturan akses: halaman `/dashboard/access` (admin-only, item nav `access: { role: 'admin' }`) untuk mengubah role; perubahan role dicatat ke `activities`.
+- Pembeda tampilan admin vs user di overview: admin melihat panel **Aktivitas Admin**, role lain melihat grafik **Nilai Temuan per Tahun** (nominal uang).
 
 ### Phase 6 — Verifikasi
 
-Status: `pending`
+Status: `complete`
 
-- Jalankan lint/typecheck/build yang tersedia.
-- Cek responsive layout, loading, empty/error state, filter, pagination, dan drawer.
-- Catat hasil verifikasi serta pekerjaan lanjutan.
+- `bun run typecheck`, `bun run lint` (0 error; 5 warning pre-existing di `evilcharts/*`), `bun run format:check`, `bun run build` semua lulus.
+- `bun run test`: 15 test lulus (unit: diff, import mapping, file sniffing; integrasi: transaksi impor terhadap DB nyata, termasuk idempotensi, kolom internal tidak tertimpa, dan cleanup tanpa residu).
+- Seed idempotent (jalan kedua `inserted=0`); DB dev bersih setelah test (22 temuan, 9 aktivitas seed, 0 residu).
+- Smoke `next start`: `/` → 307 sign-in, `/sign-in` 200, `/dashboard/*` → 307, `/api/users` 200, `/api/attachments/<id>` → 401 `signed-out`, `grep DATABASE_URL .next/static` kosong.
+- Terverifikasi nyata: jalur bootstrap admin membuat baris `users` (email pemilik, role `admin`) saat pertama membuka dashboard.
+- Belum terverifikasi otomatis (butuh sesi login Clerk): interaksi browser penuh (form create/edit, impor berkas asli, unggah/pratinjau lampiran, komentar di UI, ubah role via halaman akses, drawer/filter/pagination, dark mode).
 
 ### Phase 7 — Infrastruktur data (PostgreSQL + Drizzle + service layer)
 
