@@ -6,7 +6,7 @@ Mengimplementasikan UI tahap pertama dashboard monitoring temuan BPK USK pada co
 
 ## Status
 
-`in_progress`
+`complete` — Phase 1–7 selesai. Phase 5 & 6 dieksekusi di branch `feat/admin-actions` (5 commit) yang dibangun di atas `feat/data-infra-findings` (Phase 7, 9 commit). Satu pekerjaan tersisa yang butuh manusia: verifikasi interaksi di browser dengan sesi login Clerk asli (daftar periksa di Phase 6). Ringkasan kronologis ada di `progress.md`, detail skema/data di `docs/data.md`.
 
 ## Phases
 
@@ -51,18 +51,20 @@ Status: `complete`
 
 ### Phase 5 — Admin actions dan audit timeline UI
 
-Status: `complete`
+Status: `complete` — branch `feat/admin-actions`, commit `22d0d57` + `0015422` + `5d8b993` + `4ff95d5`.
 
-- Form tambah/edit temuan (TanStack Form + Zod, `requireRole('editor')`), soft delete + restore (admin).
-- Impor XLSX (SheetJS) satu transaksi + savepoint per baris, diff kolom resmi saja, ringkasan `import_batches`, berkas sumber di `storage/imports/`.
-- Lampiran: unggah (validasi magic bytes, maks 10 MB) ke `storage/attachments/`, pratinjau/unduh lewat route handler terautentikasi, hapus lampiran.
-- Diskusi komentar (editor/admin) terpisah dari `activities`; halaman detail membaca data DB (`getFindingDetail`).
-- Pengaturan akses: halaman `/dashboard/access` (admin-only, item nav `access: { role: 'admin' }`) untuk mengubah role; perubahan role dicatat ke `activities`.
-- Pembeda tampilan admin vs user di overview: admin melihat panel **Aktivitas Admin**, role lain melihat grafik **Nilai Temuan per Tahun** (nominal uang).
+- **Pembeda admin vs user di overview** (permintaan pemilik produk): `bpk-overview.tsx` menerima `appRole`; `admin` melihat panel **Aktivitas Admin**, role lain melihat grafik baru **Nilai Temuan per Tahun** (`bpk-year-value-chart.tsx`, `SUM(nilai_temuan)` per tahun, sumbu ringkas rupiah). Prefetch di `overview/page.tsx` kondisional mengikuti role.
+- **Form tambah/edit temuan**: `finding-form-sheet.tsx` + `schemas/finding.ts` (TanStack Form + Zod), server action `createFinding`/`updateFinding` dengan `requireRole('editor')`, diff per kolom dicatat ke `activities`.
+- **Soft delete + restore**: `softDeleteFinding` (editor) dan `restoreFinding` (**admin**); tabel punya dialog konfirmasi, penanda "Terhapus", dan switch "Tampilkan yang dihapus" (server menjaga `requireRole('admin')` pada `includeDeleted`).
+- **Impor XLSX**: SheetJS, satu transaksi dengan savepoint per baris (`import-core.ts`, dipisah agar bisa diuji integrasi), hanya 6 kolom resmi SILAHAP yang ditimpa, baris dilewati dilaporkan, ringkasan + berkas sumber di `import_batches` / `storage/imports/{batchId}.xlsx`.
+- **Lampiran**: unggah tervalidasi (magic bytes + ekstensi konsisten, maks 10 MB) ke `storage/attachments/{findingId}/{uuid}.{ext}`; pratinjau PDF/gambar dan unduh lewat route handler terautentikasi `GET /api/attachments/[id]` (401 bila belum login); hapus lampiran.
+- **Komentar**: composer Diskusi untuk editor/admin, penulis boleh menghapus komentarnya, admin boleh menghapus semua; komentar tetap terpisah dari `activities`.
+- **Halaman detail baca DB**: `src/app/dashboard/overview/temuan/[id]/page.tsx` (`fetchQuery(findingDetailOptions(id))` + `HydrationBoundary` + `notFound()`), komponen klien `bpk-finding-detail.tsx`; seam lama `src/features/overview/permissions.ts` dihapus.
+- **Pengaturan akses**: modul baru `src/features/access/**` + halaman `/dashboard/access` (admin-only, `notFound()` untuk role lain) + item nav `access: { role: 'admin' }` — item nav pertama yang benar-benar ter-gate, jadi sidebar admin dan user kini berbeda. `setUserRole` melarang menurunkan role sendiri dan mencatat `Perbarui Peran Pengguna`.
 
 ### Phase 6 — Verifikasi
 
-Status: `complete`
+Status: `complete` — dijalankan di branch `feat/admin-actions`, commit dokumentasi `9b803b1`.
 
 - `bun run typecheck`, `bun run lint` (0 error; 5 warning pre-existing di `evilcharts/*`), `bun run format:check`, `bun run build` semua lulus.
 - `bun run test`: 15 test lulus (unit: diff, import mapping, file sniffing; integrasi: transaksi impor terhadap DB nyata, termasuk idempotensi, kolom internal tidak tertimpa, dan cleanup tanpa residu).
@@ -73,7 +75,7 @@ Status: `complete`
 
 ### Phase 7 — Infrastruktur data (PostgreSQL + Drizzle + service layer)
 
-Status: `implemented` — 8 commit dieksekusi di branch `feat/data-infra-findings`; verifikasi manual di browser (login asli) menunggu konfirmasi pemilik produk. Lihat `progress.md` dan `docs/data.md`.
+Status: `complete` — 9 commit di branch `feat/data-infra-findings` (HEAD `87057ad`). Verifikasi teknis selesai (lihat Phase 6); verifikasi interaksi browser dengan login asli ikut daftar sisa di Phase 6. Lihat `progress.md` dan `docs/data.md`.
 
 Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tunggal `/Users/kiram/Code/keuangan`.
 
@@ -84,6 +86,85 @@ Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tungga
 - Siapkan `getFindingDetail(id)` untuk halaman detail tanpa mengubah UI Phase 4.
 - Revisi brief: `status_priority` dihapus (pakai `CASE`), unique key jadi partial, `kode_display` dibuat trigger, prefetch `await Promise.all`, `currentUser()` untuk email, aktivitas tanpa limit, nama kolom eksplisit + `dotenv`.
 
+---
+
+## Inventaris hasil Phase 5 & 6 (branch `feat/admin-actions`)
+
+Basis: `feat/data-infra-findings` @ `87057ad`. Diff total 45 file, +3163 / −329 baris.
+
+### Commit
+
+| Commit | Isi |
+| --- | --- |
+| `22d0d57` | Pembeda panel admin vs grafik nilai per tahun; CRUD temuan + impor XLSX |
+| `0015422` | Halaman detail berbasis DB, komentar, lampiran + route unduhan |
+| `5d8b993` | Halaman Akses & Peran (admin-only) + nav ter-gate, refactor `import-core.ts`, test integrasi |
+| `9b803b1` | Dokumentasi Phase 5/6 (`docs/data.md`, `AGENTS.md`, `progress.md`, file ini) |
+| `4ff95d5` | Perbaikan: form edit di-reset saat dibuka untuk baris lain |
+
+### Server actions (`src/features/findings/api/actions.ts`)
+
+| Action | Role minimum | Efek tambahan |
+| --- | --- | --- |
+| `createFinding` | editor | baris `activities` "Tambah Temuan"; `kode_display` dari trigger DB |
+| `updateFinding` | editor | `activities` "Perbarui Temuan" berisi diff per kolom |
+| `softDeleteFinding` | editor | `deleted_at`; `activities` "Hapus Temuan" |
+| `restoreFinding` | **admin** | `deleted_at = null`; `activities` "Pulihkan Temuan" |
+| `importFindingsXlsx` | editor | `import_batches` + `activities` batch + berkas di `storage/imports/` |
+| `createComment` / `deleteComment` | editor / penulis·admin | tabel `comments` (bukan `activities`) |
+| `uploadAttachment` / `deleteAttachment` | editor / editor | `attachments` + berkas di `storage/attachments/` |
+| `setUserRole` (`src/features/access/api/service.ts`) | **admin** | `users.role`; `activities` "Perbarui Peran Pengguna" |
+
+### UI dan route baru
+
+| Berkas / route | Fungsi |
+| --- | --- |
+| `src/features/overview/components/bpk-year-value-chart.tsx` | Grafik nilai temuan (rupiah) per tahun — tampilan role non-admin |
+| `src/features/overview/components/finding-form-sheet.tsx` | Sheet tambah/edit temuan |
+| `src/features/overview/components/import-xlsx-sheet.tsx` | Sheet impor XLSX + ringkasan hasil |
+| `src/features/overview/components/finding-detail-actions.tsx` | Aksi halaman detail (edit, unggah, hapus) |
+| `src/features/overview/components/bpk-finding-detail.tsx` (ditulis ulang) | Detail berbasis DB: ringkasan, pemeriksaan, dokumen, diskusi, riwayat |
+| `src/app/dashboard/overview/temuan/[id]/page.tsx` | Route detail server (`fetchQuery` + `HydrationBoundary` + `notFound()`) |
+| `src/app/api/attachments/[id]/route.ts` | Unduh/pratinjau lampiran terautentikasi |
+| `src/app/dashboard/access/page.tsx` + `src/features/access/**` | Halaman Akses & Peran (admin-only) |
+| `src/features/findings/api/{mutations,import-core,queries,service,types}.ts` | Lapisan data tulis/baca findings |
+| `src/features/findings/schemas/finding.ts` | Skema Zod form temuan |
+| `src/features/findings/utils/{diff,import-xlsx,file-type,format}.ts` | Helper murni: diff aktivitas, parsing XLSX, sniffing berkas, format rupiah |
+
+### Penyimpanan berkas (di luar `public/`, isi di-ignore git)
+
+```
+storage/imports/{batchId}.xlsx               # berkas sumber impor
+storage/attachments/{findingId}/{uuid}.{ext} # metadata saja di DB
+```
+
+### Test (`bun run test` = `bun test --conditions=react-server`)
+
+| Berkas | Jenis | Yang dijaga |
+| --- | --- | --- |
+| `utils/diff.test.ts` | unit | diff hanya untuk kolom resmi; format `{from,to}` |
+| `utils/import-xlsx.test.ts` | unit | mapping header, parsing rupiah/tanggal, baris tanpa identitas |
+| `utils/file-type.test.ts` | unit | magic bytes vs ekstensi (PNG bernama `.pdf` ditolak) |
+| `api/import-core.test.ts` | **integrasi (DB nyata)** | idempotensi impor, kolom internal tidak tertimpa, savepoint, ringkasan batch, cleanup tanpa residu |
+
+Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.local`).
+
+### Bug nyata yang tertangkap dan diperbaiki
+
+1. Tanggal XLSX bergeser sehari karena timezone → diganti `parseDateOnly` (tanpa konversi TZ).
+2. Lampiran PNG bernama `.pdf` lolos validasi → validasi ekstensi vs signature.
+3. Form edit menampilkan nilai baris sebelumnya → `form.reset()` saat sheet dibuka/target berubah.
+4. Cleanup test integrasi menyisakan baris `activities` (batch) → urutan hapus diperbaiki.
+
+### Sisa / utang teknis
+
+- Verifikasi browser dengan login Clerk asli (lihat Phase 6) — belum dilakukan.
+- `bpk-overview-data.ts` masih dipakai sebagai sumber seed + data halaman lama; belum dihapus.
+- Impor hanya memetakan 6 kolom resmi; kolom internal tidak pernah ditimpa (disengaja).
+- Perubahan role di halaman akses baru terlihat di sidebar setelah reload (role dibaca di server layout).
+
+---
+
 ## Decisions
 
 - Fokus UI pertama: BPK saja.
@@ -93,6 +174,11 @@ Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tungga
 - Deadline/overdue ditunda.
 - Clerk Organizations tidak diwajibkan untuk single-tenant USK; gunakan Clerk Auth + role aplikasi yang diperiksa di server.
 - Tombol Tambah Temuan dan Impor XLSX membutuhkan login dan permission aksi.
+- **Pembeda tampilan per role**: admin melihat panel Aktivitas Admin; `user`/`editor` melihat grafik nilai temuan (rupiah) per tahun. Prefetch halaman mengikuti role agar tidak mengambil data yang tidak ditampilkan.
+- **Akses & Peran hanya untuk admin**, baik route (`notFound()`), service (`requireRole('admin')`), maupun item nav (`access: { role: 'admin' }`). Admin tidak boleh menurunkan role-nya sendiri (mencegah instance kehilangan admin terakhir).
+- **Impor hanya menimpa 6 kolom resmi SILAHAP**; kolom internal (unit kerja, komentar, lampiran, penanda hapus) tidak pernah diubah berkas XLSX. Setiap impor selalu memperbarui `last_seen_in_import_at` + `last_import_batch_id`.
+- **Lampiran diakses lewat route handler terautentikasi**, bukan berkas statis di `public/`; metadata di DB, isi berkas di `storage/`.
+- **Test memakai Bun runner** (`bun run test`), dengan preload `.env.local` dan `--conditions=react-server`; helper murni diuji unit, transaksi impor diuji integrasi terhadap DB lokal.
 
 ## Errors Encountered
 
@@ -101,20 +187,27 @@ Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tungga
 | `task_plan.md` tidak ditemukan saat update | 1 | Dipulihkan di root codebase dan disinkronkan dengan progress terbaru |
 | Filter Tahun tidak menyaring apa pun (0 baris) | 1 | Kolom `number` dengan `filterFn: 'auto'` memakai `inNumberRange` bawaan TanStack sehingga filter string dari Select tidak cocok; kolom `tahun` diberi `filterFn` eksplisit yang membandingkan `String(value)` |
 | Pupup `Drawer` base-ui tidak pernah ter-mount di jsdom | 1 | Verifikasi drawer dipindahkan ke Chrome sungguhan; uji headless hanya dipakai untuk data/helper |
+| Tanggal XLSX bergeser sehari (timezone) | 1 | Test menangkapnya; ganti `toDateOnly` dengan `parseDateOnly` tanpa konversi TZ |
+| Lampiran PNG berekstensi `.pdf` lolos validasi | 1 | Test menangkapnya; validasi ekstensi wajib cocok dengan signature magic bytes |
+| Form edit menampilkan data baris sebelumnya | 1 | Sheet tetap ter-mount; `form.reset(toFormValues(finding))` saat dibuka/target berubah (`4ff95d5`) |
+| Test integrasi menyisakan baris `activities` batch | 2 | Cleanup harus hapus aktivitas batch sebelum baris batch (urutan awal salah) |
+| Smoke test route baru memberi 404 palsu | 1 | Proses `next start` lama masih memegang port; jalankan ulang di port bersih → hasil benar (307/401) |
+| `server-only` melempar saat dijalankan lewat `bun` CLI | 1 | Jalankan test dengan `--conditions=react-server` + preload `.env.local` via `bunfig.toml` |
 
-## Definition of Done
+## Definition of Done (kondisi akhir)
 
-- Dashboard overview BPK menampilkan empat KPI, bar chart tahunan, aktivitas admin, filter, dan tabel.
-- Filter dan pagination berfungsi pada dummy data.
-- UI mengikuti primitives/theme codebase.
-- Drawer dan halaman detail tersedia setelah fase berikutnya.
-- Verifikasi yang tersedia selesai atau kegagalannya tercatat.
+- Overview membaca database: empat KPI, grafik tahunan (jumlah untuk semua; nilai rupiah untuk non-admin), panel aktivitas admin (khusus admin), filter, tabel, dan pagination — via service/query layer + React Query.
+- Tulis/ubah data lewat server action dengan `requireRole()`; role bersumber dari `users.role` PostgreSQL.
+- Halaman detail, komentar, dan lampiran berfungsi di atas database; lampiran diakses lewat route terautentikasi.
+- Import XLSX, soft delete/restore, dan pengaturan role tersedia dan tercatat di `activities`.
+- Verifikasi yang tersedia selesai (typecheck, lint, format, build, 15 test, seed idempotent, smoke HTTP) atau kegagalannya tercatat di Errors Encountered.
+- Sisa tunggal: verifikasi interaksi browser dengan sesi Clerk asli oleh pemilik produk.
 
 ---
 
 ## Deferred Implementation Brief — BPK Overview UI
 
-Status: `implemented` — Phase 2 dan Phase 3 selesai untuk route `/dashboard/overview`. Sisa pekerjaan: Phase 4 (route detail `/dashboard/overview/temuan/[id]`, dokumen/PDF, diskusi, timeline) dan Phase 5 (impor XLSX serta aksi admin nyata). Tombol `Detail` dan `Lihat Detail` masih placeholder disabled sampai route detail dikerjakan.
+Status: `superseded` — brief ini sudah dieksekusi penuh: Phase 2–5 selesai. Route detail `/dashboard/overview/temuan/[id]`, dokumen/lampiran, diskusi, dan aksi admin semuanya berjalan di atas database (lihat Phase 4/5 dan bagian Inventaris di atas). Isi di bawah dipertahankan sebagai catatan sejarah keputusan, bukan rencana kerja aktif.
 
 Bagian ini adalah brief implementasi untuk agent yang mengerjakan UI overview. Kerjakan hanya setelah fitur lain yang sedang aktif selesai, dan jangan mengubah file di luar daftar scope tanpa alasan teknis yang jelas.
 
@@ -296,7 +389,7 @@ Sediakan semua filter ini di atas tabel dan jadikan fungsional terhadap dummy da
 
 ## Implementation Brief — Infrastruktur Data (PostgreSQL + Drizzle + Service Layer)
 
-Status: `planned`. **Belum ada kode yang dieksekusi.** Dokumen ini adalah spesifikasi untuk diperiksa lebih dulu oleh agent lain; implementasi dimulai setelah spec ini disetujui.
+Status: `implemented` (Phase 7 selesai) — spesifikasi di bawah sudah dieksekusi: schema, migrasi `drizzle/0000–0001`, seed, service/query layer, dan RBAC semuanya ada di kode. Dokumen dipertahankan sebagai rujukan keputusan (D1–D36) dan sebagai catatan revisi yang benar-benar terjadi.
 
 - Branch kerja: `feat/data-infra-findings`, dibuat dari `891ff72` (branch `phase-4-detail-temuan`, Phase 4 sudah `complete`).
 - **Satu worktree saja**: pekerjaan fase ini dilakukan di `/Users/kiram/Code/keuangan` pada branch tersebut. Tidak ada worktree terpisah.
@@ -744,8 +837,9 @@ Catat hasil di `progress.md` (termasuk angka KPI sebelum/sesudah) dan update sta
 - Branch: `feat/data-infra-findings` dari `891ff72`; dikerjakan di worktree tunggal `/Users/kiram/Code/keuangan` (tidak ada worktree kedua).
 - Hanya satu agent/pekerja yang menjalankan `db:migrate` pada database dev `keuangan` supaya tidak ada migrasi beradu.
 - File yang paling mungkin berkonflik dengan Phase 5: `src/features/overview/components/bpk-overview.tsx`, `src/app/dashboard/overview/page.tsx`, `package.json`, `bun.lock`, `task_plan.md`, `progress.md`.
-- Urutan: Phase 5 selesai dulu → branch ini di-rebase di tempat (satu-satunya worktree) → selesaikan konflik di sisi sini → merge ke `phase-4-detail-temuan`. `main` tidak disentuh.
-- Follow-up (di luar fase ini): pindahkan halaman detail + drawer ke `findingDetailOptions`, lalu hapus data dummy (`BPK_FINDINGS`, `BPK_ADMIN_ACTIVITIES`, `BPK_COMMENTS`, `BPK_ATTACHMENTS`) dan pindahkan formatter/tipe ke `src/features/findings/`.
+- Urutan terlaksana: Phase 5 dikerjakan di branch baru `feat/admin-actions` (dari `87057ad`) di worktree yang sama, tanpa menyentuh `main`. `phase-4-detail-temuan` tidak pernah ter-checkout; merge ke `main` menyusul keputusan pemilik.
+- Follow-up selesai: halaman detail + komponen detail sudah memakai `findingDetailOptions`; seam `permissions.ts` dihapus.
+- Follow-up yang masih terbuka: hapus data dummy (`BPK_FINDINGS`, `BPK_ADMIN_ACTIVITIES`, `BPK_COMMENTS`, `BPK_ATTACHMENTS` di `bpk-overview-data.ts`) — file masih dipakai sebagai sumber seed dan opsi filter halaman lama; verifikasi browser login asli; deadline/overdue tetap ditunda.
 
 ### 13. Hal yang perlu dikonfirmasi reviewer
 
