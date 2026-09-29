@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -80,6 +81,16 @@ export function FindingFormSheet({ finding, open, onOpenChange }: FindingFormShe
       }
     }
   });
+
+  // The sheet stays mounted while it toggles, so the fields must be rebuilt
+  // whenever it opens for a different row (or for a fresh create).
+  const findingKey = finding?.kodeDisplay ?? 'new';
+  React.useEffect(() => {
+    if (open) {
+      form.reset(toFormValues(finding));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only on open/target change
+  }, [open, findingKey]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
