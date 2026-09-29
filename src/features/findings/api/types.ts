@@ -83,6 +83,8 @@ export interface Finding {
   tanggalTindakLanjut: string | null;
   tanggalTerakhirUpdate: string;
   unitKerja: string;
+  /** ISO timestamp when soft-deleted; null for live rows. */
+  deletedAt: string | null;
 }
 
 export interface FindingFilters {
@@ -120,6 +122,12 @@ export interface OverviewMetric {
 export interface YearlyFinding {
   tahun: number;
   jumlah: number;
+}
+
+export interface YearlyValue {
+  tahun: number;
+  /** Exact numeric string of SUM(nilai_temuan) for that year (D8/T3). */
+  totalNilai: string;
 }
 
 export type ActivityAction =

@@ -2,6 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 
 import {
   getFindingsByYear,
+  getFindingsValueByYear,
   getFindingDetail,
   getOverviewMetrics,
   listFindingActivities,
@@ -16,6 +17,7 @@ export const findingKeys = {
   detail: (id: string) => [...findingKeys.all, 'detail', id] as const,
   metrics: () => [...findingKeys.all, 'metrics'] as const,
   yearly: () => [...findingKeys.all, 'yearly'] as const,
+  yearlyValue: () => [...findingKeys.all, 'yearly-value'] as const,
   activities: (limit?: number) => [...findingKeys.all, 'activities', limit ?? 'all'] as const,
   findingActivities: (id: string, limit?: number) =>
     [...findingKeys.all, 'finding-activities', id, limit] as const
@@ -37,6 +39,12 @@ export const findingsByYearQueryOptions = () =>
   queryOptions({
     queryKey: findingKeys.yearly(),
     queryFn: getFindingsByYear
+  });
+
+export const findingsValueByYearQueryOptions = () =>
+  queryOptions({
+    queryKey: findingKeys.yearlyValue(),
+    queryFn: getFindingsValueByYear
   });
 
 export const recentActivitiesQueryOptions = (limit?: number) =>

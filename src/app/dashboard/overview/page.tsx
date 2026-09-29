@@ -7,6 +7,7 @@ import { getAppRoleWithBootstrap } from '@/lib/rbac';
 import {
   findingsByYearQueryOptions,
   findingsQueryOptions,
+  findingsValueByYearQueryOptions,
   overviewMetricsQueryOptions,
   recentActivitiesQueryOptions
 } from '@/features/findings/api/queries';
@@ -51,11 +52,15 @@ export default async function OverviewPage(props: PageProps) {
 
   const queryClient = getQueryClient();
   const appRole = await getAppRoleWithBootstrap();
+  const isAdmin = appRole === 'admin';
   await Promise.all([
     queryClient.prefetchQuery(findingsQueryOptions(filters)),
     queryClient.prefetchQuery(overviewMetricsQueryOptions()),
     queryClient.prefetchQuery(findingsByYearQueryOptions()),
-    queryClient.prefetchQuery(recentActivitiesQueryOptions())
+    // Only the region the role will actually render is prefetched.
+    isAdmin
+      ? queryClient.prefetchQuery(recentActivitiesQueryOptions())
+      : queryClient.prefetchQuery(findingsValueByYearQueryOptions())
   ]);
 
   return (
@@ -64,7 +69,7 @@ export default async function OverviewPage(props: PageProps) {
       pageDescription='Ringkasan tindak lanjut hasil pemeriksaan'
     >
       <HydrationBoundary state={dehydrate(queryClient)}>
-        <BpkOverview canManage={appRole !== 'user'} />
+        <BpkOverview appRole={appRole} />
       </HydrationBoundary>
     </PageContainer>
   );

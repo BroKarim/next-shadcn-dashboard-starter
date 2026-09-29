@@ -2,10 +2,31 @@
 
 import * as React from 'react';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { parseAsInteger, parseAsString, debounce, useQueryState, useQueryStates } from 'nuqs';
+import {
+  parseAsBoolean,
+  parseAsInteger,
+  parseAsString,
+  debounce,
+  useQueryState,
+  useQueryStates
+} from 'nuqs';
 import { flexRender, type ColumnDef, type Row } from '@tanstack/react-table';
 
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
 import { Icons } from '@/components/icons';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
@@ -26,6 +47,7 @@ import {
 } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -45,6 +67,11 @@ import { DataTablePagination } from '@/components/ui/table/data-table-pagination
 import { useDataTable } from '@/hooks/use-data-table';
 import { findingActivitiesOptions, findingsQueryOptions } from '@/features/findings/api/queries';
 import {
+  restoreFindingMutation,
+  softDeleteFindingMutation
+} from '@/features/findings/api/mutations';
+import { toUserMessage } from '@/lib/errors';
+import {
   FINDING_STATUSES,
   type Activity,
   type Finding,
@@ -57,6 +84,8 @@ import Link from 'next/link';
 import { BPK_KODE_REKOMENDASI, BPK_KODE_TEMUAN, BPK_YEARS } from './bpk-overview-data';
 import { StatusBadge } from './bpk-status-badge';
 import { BpkTableSkeleton } from './bpk-overview-skeletons';
+import { FindingFormSheet } from './finding-form-sheet';
+import { ImportXlsxSheet } from './import-xlsx-sheet';
 
 const ALL_VALUE = 'all';
 const FILTER_DEBOUNCE_MS = 400;
@@ -104,9 +133,34 @@ function DrawerActivityItem({ activity }: { activity: Activity }) {
 }
 
 /** Table body, pagination and drawer — the only region that re-suspends on filter changes. */
-function FindingsTableResult({ filters }: { filters: FindingFilters }) {
+function FindingsTableResult({
+  filters,
+  canManage,
+  canRestore
+}: {
+  filters: FindingFilters;
+  canManage: boolean;
+  canRestore: boolean;
+}) {
   const { data } = useSuspenseQuery(findingsQueryOptions(filters));
   const [selectedFinding, setSelectedFinding] = React.useState<Finding | null>(null);
+  const [editingFinding, setEditingFinding] = React.useState<Finding | null>(null);
+  const [deletingFinding, setDeletingFinding] = React.useState<Finding | null>(null);
+
+  const deleteMutation = useMutation({
+    ...softDeleteFindingMutation,
+    onSuccess: () => {
+      toast.success('Temuan dihapus (soft delete).');
+      setDeletingFinding(null);
+    },
+    onError: (error) => toast.error(toUserMessage(error))
+  });
+
+  const restoreMutation = useMutation({
+    ...restoreFindingMutation,
+    onSuccess: () => toast.success('Temuan dipulihkan.'),
+    onError: (error) => toast.error(toUserMessage(error))
+  });
 
   const { data: relatedActivities } = useQuery({
     ...findingActivitiesOptions(selectedFinding ? selectedFinding.id : '', 3),
@@ -129,7 +183,16 @@ function FindingsTableResult({ filters }: { filters: FindingFilters }) {
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: ({ row }) => <StatusBadge status={row.original.status} />
+        cell: ({ row }) => (
+          <div className='flex items-center gap-1.5'>
+            <StatusBadge status={row.original.status} />
+            {row.original.deletedAt !== null && (
+              <Badge variant='outline' className='text-muted-foreground'>
+                Terhapus
+              </Badge>
+            )}
+          </div>
+        )
       },
       {
         accessorKey: 'tahun',
@@ -178,6 +241,50 @@ function FindingsTableResult({ filters }: { filters: FindingFilters }) {
             >
               <Icons.eye className='size-4' />
             </Button>
+            {canManage && row.original.deletedAt === null && (
+              <Button
+                variant='ghost'
+                size='icon'
+                className='size-8'
+                aria-label={`Edit temuan ${row.original.kodeDisplay}`}
+                title='Edit temuan'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setEditingFinding(row.original);
+                }}
+              >
+                <Icons.edit className='size-4' />
+              </Button>
+            )}
+            {canManage && row.original.deletedAt === null && (
+              <Button
+                variant='ghost'
+                size='icon'
+                className='size-8 text-destructive'
+                aria-label={`Hapus temuan ${row.original.kodeDisplay}`}
+                title='Hapus temuan'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDeletingFinding(row.original);
+                }}
+              >
+                <Icons.trash className='size-4' />
+              </Button>
+            )}
+            {canRestore && row.original.deletedAt !== null && (
+              <Button
+                variant='outline'
+                size='sm'
+                disabled={restoreMutation.isPending}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  restoreMutation.mutate(row.original.kodeDisplay);
+                }}
+              >
+                <Icons.restore className='size-4' />
+                Pulihkan
+              </Button>
+            )}
             <Link
               href={`/dashboard/overview/temuan/${row.original.kodeDisplay}`}
               className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
@@ -188,7 +295,7 @@ function FindingsTableResult({ filters }: { filters: FindingFilters }) {
         )
       }
     ],
-    [openFinding]
+    [openFinding, canManage, canRestore, restoreMutation]
   );
 
   const table = useDataTable({
@@ -375,6 +482,45 @@ function FindingsTableResult({ filters }: { filters: FindingFilters }) {
           )}
         </DrawerContent>
       </Drawer>
+
+      {canManage && (
+        <FindingFormSheet
+          finding={editingFinding ?? undefined}
+          open={editingFinding !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingFinding(null);
+          }}
+        />
+      )}
+
+      <AlertDialog
+        open={deletingFinding !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeletingFinding(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus temuan {deletingFinding?.kodeDisplay}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Temuan tidak dihapus permanen: baris disembunyikan dari daftar, KPI, dan grafik, serta
+              dapat dipulihkan oleh admin. Aksi ini tercatat pada Riwayat Aktivitas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (deletingFinding) deleteMutation.mutate(deletingFinding.kodeDisplay);
+              }}
+            >
+              <Icons.trash className='size-4' />
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
@@ -384,7 +530,15 @@ function FindingsTableResult({ filters }: { filters: FindingFilters }) {
  * the server via React Query. Filter changes only re-suspend the table area,
  * so the card chrome and the filter inputs stay mounted (task_plan.md §7).
  */
-export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
+export function BpkFindingsTable({
+  canManage,
+  canRestore
+}: {
+  canManage: boolean;
+  canRestore: boolean;
+}) {
+  const [formOpen, setFormOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [params, setParams] = useQueryStates({
     q: parseAsString.withOptions({ limitUrlUpdates: debounce(FILTER_DEBOUNCE_MS) }),
     status: parseAsString,
@@ -397,6 +551,11 @@ export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
   // propagate through the shared param.
   const [page, setPage] = useQueryState('page', parseAsInteger.withDefault(1));
   const [perPage] = useQueryState('perPage', parseAsInteger.withDefault(10));
+  // Admin-only: include soft-deleted rows (server re-checks via requireRole).
+  const [includeDeleted, setIncludeDeleted] = useQueryState(
+    'includeDeleted',
+    parseAsBoolean.withDefault(false)
+  );
 
   const filters: FindingFilters = React.useMemo(
     () => ({
@@ -407,9 +566,10 @@ export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
       ...(params.tahun && { tahun: params.tahun }),
       ...(params.kodeTemuan && { kodeTemuan: params.kodeTemuan }),
       ...(params.kodeRekomendasi && { kodeRekomendasi: params.kodeRekomendasi }),
-      ...(params.judul && { judul: params.judul })
+      ...(params.judul && { judul: params.judul }),
+      ...(includeDeleted && { includeDeleted: true })
     }),
-    [params, page, perPage]
+    [params, page, perPage, includeDeleted]
   );
 
   // Every filter change returns to the first page (contract from Phase 3).
@@ -426,7 +586,7 @@ export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
 
   const tableArea = (
     <React.Suspense fallback={<BpkTableSkeleton />}>
-      <FindingsTableResult filters={filters} />
+      <FindingsTableResult filters={filters} canManage={canManage} canRestore={canRestore} />
     </React.Suspense>
   );
 
@@ -436,11 +596,28 @@ export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
         <CardTitle>Daftar Temuan</CardTitle>
         <CardDescription>Klik baris untuk melihat ringkasan temuan</CardDescription>
         <CardAction className='flex flex-wrap items-center justify-end gap-2'>
+          {canRestore && (
+            <div className='text-muted-foreground flex items-center gap-2 text-xs'>
+              <Switch
+                aria-label='Tampilkan temuan yang dihapus'
+                checked={includeDeleted}
+                onCheckedChange={(checked) => {
+                  void setIncludeDeleted(checked);
+                }}
+              />
+              Tampilkan yang dihapus
+            </div>
+          )}
           <Button
             variant='outline'
             size='sm'
             disabled={!canManage}
-            title='Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+            title={
+              canManage
+                ? 'Impor temuan dari ekspor XLSX SILAHAP.'
+                : 'Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+            }
+            onClick={() => setImportOpen(true)}
           >
             <Icons.fileTypeXls className='size-4' />
             Impor XLSX
@@ -448,7 +625,12 @@ export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
           <Button
             size='sm'
             disabled={!canManage}
-            title='Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+            title={
+              canManage
+                ? 'Tambah temuan secara manual.'
+                : 'Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+            }
+            onClick={() => setFormOpen(true)}
           >
             <Icons.add className='size-4' />
             Tambah Temuan
@@ -590,6 +772,9 @@ export function BpkFindingsTable({ canManage }: { canManage: boolean }) {
 
         {tableArea}
       </CardContent>
+
+      {canManage && <FindingFormSheet open={formOpen} onOpenChange={setFormOpen} />}
+      {canManage && <ImportXlsxSheet open={importOpen} onOpenChange={setImportOpen} />}
     </Card>
   );
 }

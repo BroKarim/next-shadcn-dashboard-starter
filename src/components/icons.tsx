@@ -75,6 +75,7 @@ import {
   IconStack2,
   IconStar,
   IconSun,
+  IconRestore,
   IconTrash,
   IconTrendingDown,
   IconTrendingUp,
@@ -113,6 +114,7 @@ export const Icons = {
   search: IconSearch,
   settings: IconSettings,
   trash: IconTrash,
+  restore: IconRestore,
 
   // Navigation / Chevrons
   chevronDown: IconChevronDown,

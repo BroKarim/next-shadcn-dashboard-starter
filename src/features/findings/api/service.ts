@@ -33,7 +33,8 @@ import {
   type FindingsPage,
   type FindingStatus,
   type OverviewMetric,
-  type YearlyFinding
+  type YearlyFinding,
+  type YearlyValue
 } from './types';
 
 const MAX_PER_PAGE = 100;
@@ -68,7 +69,8 @@ function toFindingDTO(row: FindingRow): Finding {
     alasanDitolak: row.alasanDitolak,
     tanggalTindakLanjut: row.tanggalTindakLanjut,
     tanggalTerakhirUpdate: row.tanggalTerakhirUpdate.toISOString(),
-    unitKerja: row.unitKerja
+    unitKerja: row.unitKerja,
+    deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null
   };
 }
 
@@ -289,6 +291,23 @@ export async function getFindingsByYear(): Promise<YearlyFinding[]> {
     .orderBy(asc(findings.tahun));
 
   return rows.map((row) => ({ tahun: row.tahun, jumlah: Number(row.jumlah) }));
+}
+
+/** Sum of finding values per year — the non-admin overview chart. */
+export async function getFindingsValueByYear(): Promise<YearlyValue[]> {
+  await requireAuth();
+
+  const rows = await db
+    .select({
+      tahun: findings.tahun,
+      totalNilai: sql<string>`coalesce(sum(${findings.nilaiTemuan}), 0)::text`
+    })
+    .from(findings)
+    .where(isNull(findings.deletedAt))
+    .groupBy(findings.tahun)
+    .orderBy(asc(findings.tahun));
+
+  return rows.map((row) => ({ tahun: row.tahun, totalNilai: row.totalNilai }));
 }
 
 export async function listRecentActivities(limit?: number): Promise<Activity[]> {

@@ -33,6 +33,36 @@ export function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+/**
+ * Compact rupiah for chart axes: `Rp7,5 M`, `Rp512,3 jt`, `Rp96 rb`.
+ * Kept deterministic (no Intl currency) so SSR and client markup match.
+ */
+export function formatRupiahCompact(value: string | number): string {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    return '—';
+  }
+
+  const abs = Math.abs(numeric);
+  const sign = numeric < 0 ? '-' : '';
+  const units: { limit: number; suffix: string }[] = [
+    { limit: 1_000_000_000_000, suffix: ' T' },
+    { limit: 1_000_000_000, suffix: ' M' },
+    { limit: 1_000_000, suffix: ' jt' },
+    { limit: 1_000, suffix: ' rb' }
+  ];
+
+  for (const { limit, suffix } of units) {
+    if (abs >= limit) {
+      const scaled = abs / limit;
+      const rounded = scaled >= 100 ? Math.round(scaled) : Math.round(scaled * 10) / 10;
+      return `${sign}Rp${rounded.toLocaleString('id-ID')}${suffix}`;
+    }
+  }
+
+  return `${sign}Rp${abs.toLocaleString('id-ID')}`;
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
 
