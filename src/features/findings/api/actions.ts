@@ -11,21 +11,20 @@
  * actions for future features.
  */
 
-import { createHash, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 
 import { and, eq, isNull, isNotNull, sql } from 'drizzle-orm';
-import * as XLSX from 'xlsx';
 
 import { db } from '@/db/client';
-import { activities, attachments, comments, findings, importBatches } from '@/db/schema';
+import { activities, attachments, comments, findings } from '@/db/schema';
 import { NotFoundError, ValidationError } from '@/lib/errors';
 import { requireActorIdentity, requireRole } from '@/lib/rbac';
 import { findingSchema, type FindingFormValues } from '../schemas/finding';
 import type { ActivityAction, FindingStatus } from './types';
 import { diffFields, hasChanges, type FieldDiff } from '../utils/diff';
 import { resolveFile } from '../utils/file-type';
-import { diffOfficialFields, importIdentity, mapSheetRows } from '../utils/import-xlsx';
+import { applyImport, type ImportSummary } from './import-core';
 
 /** Attachment upload limit (task_plan.md §2/D25): 10 MB. */
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -256,24 +255,11 @@ export async function restoreFinding(kodeDisplay: string): Promise<{ restored: b
 }
 
 // ---------------------------------------------------------------------------
-// XLSX import (D18/D19): direct upsert inside one transaction, per-row diff
-// logged to `activities`, summary recorded in `import_batches`, source file
-// kept under `storage/imports/` as an audit artifact.
+// XLSX import (D18/D19): auth + file validation here, the transactional core
+// lives in `import-core.ts` so it can be integration tested without Clerk.
 // ---------------------------------------------------------------------------
 
-export interface ImportSummary {
-  batchId: string;
-  fileName: string;
-  rowsTotal: number;
-  created: number;
-  updated: number;
-  unchanged: number;
-  failed: number;
-  status: 'completed' | 'completed_with_errors' | 'failed';
-  skipped: { rowNumber: number; reason: string }[];
-}
-
-/** Imports are editor/admin only (D17); the whole file runs in one transaction. */
+/** Imports are editor/admin only (D17). */
 export async function importFindingsXlsx(formData: FormData): Promise<ImportSummary> {
   await requireRole('editor');
   const actor = await requireActorIdentity();
@@ -287,199 +273,7 @@ export async function importFindingsXlsx(formData: FormData): Promise<ImportSumm
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
-  const fileHash = createHash('sha256').update(buffer).digest('hex');
-
-  let sheetRows: Record<string, unknown>[];
-  try {
-    const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
-    const sheetName = workbook.SheetNames[0];
-    if (!sheetName) {
-      throw new ValidationError('Berkas tidak memiliki lembar kerja.');
-    }
-    sheetRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(workbook.Sheets[sheetName], {
-      defval: ''
-    });
-  } catch (error) {
-    if (error instanceof ValidationError) throw error;
-    throw new ValidationError('Berkas XLSX tidak dapat dibaca.');
-  }
-
-  if (sheetRows.length === 0) {
-    throw new ValidationError('Berkas tidak berisi baris data.');
-  }
-
-  const { records, skipped } = mapSheetRows(sheetRows);
-
-  const summary = await db.transaction(async (tx) => {
-    const [batch] = await tx
-      .insert(importBatches)
-      .values({
-        fileName: file.name,
-        fileHash,
-        uploadedByUserId: actor.userId,
-        uploadedByEmail: actor.email,
-        startedAt: new Date(),
-        status: 'pending',
-        rowsTotal: sheetRows.length
-      })
-      .returning({ id: importBatches.id });
-
-    if (!batch) {
-      throw new ValidationError('Batch impor gagal dibuat.');
-    }
-
-    // Existing rows for the identities present in the file.
-    const existingRows = await tx.select().from(findings).where(isNull(findings.deletedAt));
-    const byIdentity = new Map(
-      existingRows.map((row) => [
-        importIdentity({
-          noSatker: row.noSatker,
-          tahun: row.tahun,
-          kodeTemuan: row.kodeTemuan,
-          kodeRekomendasi: row.kodeRekomendasi
-        }),
-        row
-      ])
-    );
-
-    let created = 0;
-    let updated = 0;
-    let unchanged = 0;
-    let failed = 0;
-    const failures: string[] = skipped.map((row) => `Baris ${row.rowNumber}: ${row.reason}`);
-
-    for (const record of records) {
-      const identity = importIdentity(record);
-      const existing = byIdentity.get(identity);
-
-      // Savepoint per row: one bad row must not abort the whole import.
-      try {
-        if (!existing) {
-          const [inserted] = await tx
-            .insert(findings)
-            .values({
-              ...toRow(record),
-              kodeDisplay: sql`default`,
-              tanggalTerakhirUpdate: record.tanggalTerakhirUpdate,
-              lastSeenInImportAt: new Date(),
-              lastImportBatchId: batch.id
-            })
-            .returning({ id: findings.id, kodeDisplay: findings.kodeDisplay });
-
-          await logActivity(tx, actor, {
-            entityId: inserted.id,
-            action: 'Tambah Temuan',
-            metadata: {
-              source: 'import-xlsx',
-              importBatchId: batch.id,
-              kodeDisplay: inserted.kodeDisplay
-            }
-          });
-          created += 1;
-          continue;
-        }
-
-        const before = existing as unknown as Record<string, unknown>;
-        const after = {
-          ...existing,
-          ...toRow(record),
-          tanggalTerakhirUpdate: record.tanggalTerakhirUpdate
-        } as unknown as Record<string, unknown>;
-        const diff = diffOfficialFields(before, after);
-
-        await tx
-          .update(findings)
-          .set({
-            status: record.status,
-            alasanDitolak: record.alasanDitolak,
-            deskripsiTindakLanjut: record.deskripsiTindakLanjut,
-            tanggalTindakLanjut: record.tanggalTindakLanjut,
-            tanggalTerakhirUpdate: record.tanggalTerakhirUpdate,
-            nilaiTemuan: record.nilaiTemuan.toFixed(2),
-            lastSeenInImportAt: new Date(),
-            lastImportBatchId: batch.id
-          })
-          .where(eq(findings.id, existing.id));
-
-        if (hasChanges(diff)) {
-          await logActivity(tx, actor, {
-            entityId: existing.id,
-            action: 'Perbarui Temuan',
-            metadata: { source: 'import-xlsx', importBatchId: batch.id, ...diff }
-          });
-          updated += 1;
-        } else {
-          unchanged += 1;
-        }
-      } catch (error) {
-        failed += 1;
-        const detail = error instanceof Error ? error.message : 'kesalahan tidak dikenal';
-        if (failures.length < 50) {
-          failures.push(`Baris ${record.kodeTemuan}/${record.tahun}: ${detail}`);
-        }
-      }
-    }
-
-    const status: ImportSummary['status'] =
-      records.length === 0
-        ? 'failed'
-        : failed > 0 || skipped.length > 0
-          ? 'completed_with_errors'
-          : 'completed';
-
-    // Best-effort audit copy; the database remains the source of truth.
-    let storagePath: string | null = `storage/imports/${batch.id}.xlsx`;
-    try {
-      await mkdir('storage/imports', { recursive: true });
-      await writeFile(storagePath, buffer);
-    } catch {
-      storagePath = null;
-      failures.push('Berkas sumber gagal disimpan ke storage/imports.');
-    }
-
-    await tx
-      .update(importBatches)
-      .set({
-        finishedAt: new Date(),
-        status,
-        rowsCreated: created,
-        rowsUpdated: updated,
-        rowsUnchanged: unchanged,
-        rowsFailed: failed,
-        errorSummary: failures.length > 0 ? failures.slice(0, 20).join('\n') : null,
-        storagePath
-      })
-      .where(eq(importBatches.id, batch.id));
-
-    await logActivity(tx, actor, {
-      entityId: batch.id,
-      entityType: 'import_batch',
-      action: 'Impor XLSX',
-      metadata: {
-        fileName: file.name,
-        rowsTotal: sheetRows.length,
-        created,
-        updated,
-        unchanged,
-        failed,
-        skipped: skipped.length
-      }
-    });
-
-    return {
-      batchId: batch.id,
-      fileName: file.name,
-      rowsTotal: sheetRows.length,
-      created,
-      updated,
-      unchanged,
-      failed,
-      status,
-      skipped
-    } satisfies ImportSummary;
-  });
-
-  return summary;
+  return applyImport(buffer, file.name, actor);
 }
 
 // ---------------------------------------------------------------------------

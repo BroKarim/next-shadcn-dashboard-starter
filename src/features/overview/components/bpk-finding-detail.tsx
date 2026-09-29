@@ -129,9 +129,10 @@ function AttachmentPreview({ attachment }: { attachment: FindingAttachment | nul
           <iframe
             src={src}
             title={`Pratinjau ${attachment.fileName}`}
-            // Same-origin authenticated route; scripts are only needed by the
-            // browser's built-in PDF viewer.
-            sandbox='allow-same-origin allow-scripts'
+            // Fully sandboxed: the file comes from an authenticated route and
+            // is user-uploaded. If the viewer refuses to render, the toolbar
+            // offers "Buka di tab baru".
+            sandbox=''
             className='h-96 w-full rounded-md bg-background'
           />
         ) : attachment.fileType === 'image' ? (

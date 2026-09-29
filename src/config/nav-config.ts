@@ -40,6 +40,17 @@ export const navGroups: NavGroup[] = [
         shortcut: ['u', 'u'],
         isActive: false,
         items: []
+      },
+      {
+        title: 'Akses & Peran',
+        url: '/dashboard/access',
+        icon: 'account',
+        shortcut: ['a', 'a'],
+        isActive: false,
+        items: [],
+        // Admin-only: the sidebar/KBar hide it for other roles (UX), and the
+        // page + server actions enforce the same rule server-side.
+        access: { role: 'admin' }
       }
     ]
   },
