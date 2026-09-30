@@ -26,14 +26,6 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Product',
-        url: '/dashboard/product',
-        icon: 'product',
-        shortcut: ['p', 'p'],
-        isActive: false,
-        items: []
-      },
-      {
         title: 'Users',
         url: '/dashboard/users',
         icon: 'teams',
@@ -48,7 +40,7 @@ export const navGroups: NavGroup[] = [
         shortcut: ['a', 'a'],
         isActive: false,
         items: [],
-        // Admin-only: the sidebar/KBar hide it for other roles (UX), and the
+        // Admin-only: the sidebar hides it for other roles (UX), and the
         // page + server actions enforce the same rule server-side.
         access: { role: 'admin' }
       }
