@@ -221,7 +221,11 @@ export function FindingFormSheet({ finding, open, onOpenChange }: FindingFormShe
             </FieldGroup>
 
             <SheetFooter className='px-0'>
-              <form.SubmitButton>{isEdit ? 'Simpan Perubahan' : 'Simpan Temuan'}</form.SubmitButton>
+              <form.AppForm>
+                <form.SubmitButton>
+                  {isEdit ? 'Simpan Perubahan' : 'Simpan Temuan'}
+                </form.SubmitButton>
+              </form.AppForm>
             </SheetFooter>
           </form>
         </div>
