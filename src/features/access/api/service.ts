@@ -16,7 +16,7 @@ import type { AppRole } from '@/types';
 import type { AppUser, AppUsersPage } from './types';
 
 function toAppRole(value: string): AppRole {
-  return value === 'admin' || value === 'editor' ? value : 'user';
+  return value === 'admin' ? 'admin' : 'user';
 }
 
 function toAppUser(row: typeof users.$inferSelect): AppUser {
@@ -46,7 +46,7 @@ export async function setUserRole(userId: string, role: AppRole): Promise<{ upda
   await requireRole('admin');
   const actor = await requireActorIdentity();
 
-  if (!['user', 'editor', 'admin'].includes(role)) {
+  if (!['user', 'admin'].includes(role)) {
     throw new ValidationError('Role tidak dikenal.');
   }
 

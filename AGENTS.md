@@ -52,7 +52,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 ### Authentication & Authorization
 
 - Clerk for authentication — single tenant (one institution), no Clerk Organizations or Billing
-- Application roles: `user` (read-only), `editor`, `admin` — stored in the local `users` table (`users.role`); the database is the source of truth, Clerk only provides identity
+- Application roles: `user` (read everything + write comments) and `admin` (everything) — stored in the local `users` table (`users.role`); the database is the source of truth, Clerk only provides identity
 - Roles must be enforced server-side (server action / route handler); client-side nav filtering is UX only — see `docs/nav-rbac.md`
 
 ### Data & APIs
@@ -276,7 +276,7 @@ export const navGroups: NavGroup[] = [
         icon: 'dashboard',
         shortcut: ['d', 'd'],
         items: [],
-        access: { role: 'editor' } // minimum application role
+        access: { role: 'admin' } // minimum application role
       }
     ]
   }
@@ -285,7 +285,7 @@ export const navGroups: NavGroup[] = [
 
 ### Access Control Property
 
-- `role: 'user' | 'editor' | 'admin'` — minimum application role required to see the item (`user` < `editor` < `admin`)
+- `role: 'user' | 'admin'` — minimum application role required to see the item (`user` < `admin`)
 
 ### Client-Side Filtering
 
@@ -311,7 +311,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
 ### Role Checks (server-side)
 
-Application roles live in the `users.role` column of the local PostgreSQL database (`user` | `editor` | `admin`). Clerk provides the identity only.
+Application roles live in the `users.role` column of the local PostgreSQL database (`user` | `admin`). Clerk provides the identity only.
 
 The real implementation lives in `src/lib/rbac.ts` — use it, do not re-implement:
 
@@ -320,8 +320,8 @@ import { requireRole, requireActorIdentity } from '@/lib/rbac';
 import type { AppRole } from '@/types';
 
 // Inside a server action that mutates data:
-await requireRole('editor' as AppRole); // throws ForbiddenError when insufficient
-const actor = await requireActorIdentity(); // { userId, email, name } for actor snapshots
+await requireRole('admin' as AppRole); // throws ForbiddenError when insufficient
+const actor = await requireActorIdentity(); // { id: users.id, email, name } for actor snapshots / FK columns
 ```
 
 - `requireAuth()` → Clerk `userId` (`auth()` does not expose an email).

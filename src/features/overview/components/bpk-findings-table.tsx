@@ -621,7 +621,7 @@ export function BpkFindingsTable({
             title={
               canManage
                 ? 'Impor temuan dari ekspor XLSX SILAHAP.'
-                : 'Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+                : 'Aksi pengelolaan temuan memerlukan hak akses admin.'
             }
             onClick={() => setImportOpen(true)}
           >
@@ -634,7 +634,7 @@ export function BpkFindingsTable({
             title={
               canManage
                 ? 'Tambah temuan secara manual.'
-                : 'Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+                : 'Aksi pengelolaan temuan memerlukan hak akses admin.'
             }
             onClick={() => setFormOpen(true)}
           >

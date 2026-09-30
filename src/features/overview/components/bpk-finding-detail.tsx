@@ -183,11 +183,15 @@ function ActivityItem({ activity }: { activity: Activity }) {
 export function BpkFindingDetail({
   kodeDisplay,
   canManage,
-  canDeleteComment
+  canDeleteComment,
+  currentUserEmail
 }: {
   kodeDisplay: string;
+  /** Admin-only data management (attachments upload/delete). */
   canManage: boolean;
+  /** Admin may delete any comment; every author may delete their own. */
   canDeleteComment: boolean;
+  currentUserEmail: string | null;
 }) {
   const { data } = useSuspenseQuery(findingDetailOptions(kodeDisplay));
   const { finding, attachments, comments, activities } = data;
@@ -302,7 +306,7 @@ export function BpkFindingDetail({
               size='sm'
               loading={uploadMutation.isPending}
               disabled={!canManage}
-              title={canManage ? undefined : 'Perlu hak akses editor atau admin.'}
+              title={canManage ? undefined : 'Perlu hak akses admin.'}
               onClick={() => fileInputRef.current?.click()}
             >
               <Icons.upload className='size-4' />
@@ -387,7 +391,7 @@ export function BpkFindingDetail({
                       <span className='text-muted-foreground text-xs tabular-nums'>
                         {formatDateTime(comment.createdAt)}
                       </span>
-                      {canDeleteComment && (
+                      {(canDeleteComment || comment.authorEmail === currentUserEmail) && (
                         <Button
                           variant='ghost'
                           size='icon'
@@ -408,28 +412,26 @@ export function BpkFindingDetail({
             </ul>
           )}
 
-          {canManage && (
-            <div className='flex flex-col gap-2 border-t pt-4'>
-              <Textarea
-                value={commentBody}
-                onChange={(event) => setCommentBody(event.target.value)}
-                placeholder='Tulis komentar tindak lanjut…'
-                aria-label='Tulis komentar'
-                rows={3}
-              />
-              <div className='flex justify-end'>
-                <LoadingButton
-                  size='sm'
-                  loading={commentMutation.isPending}
-                  disabled={commentMutation.isPending || commentBody.trim().length === 0}
-                  onClick={() => commentMutation.mutate({ kodeDisplay, body: commentBody })}
-                >
-                  <Icons.send className='size-4' />
-                  Kirim Komentar
-                </LoadingButton>
-              </div>
+          <div className='flex flex-col gap-2 border-t pt-4'>
+            <Textarea
+              value={commentBody}
+              onChange={(event) => setCommentBody(event.target.value)}
+              placeholder='Tulis komentar tindak lanjut…'
+              aria-label='Tulis komentar'
+              rows={3}
+            />
+            <div className='flex justify-end'>
+              <LoadingButton
+                size='sm'
+                loading={commentMutation.isPending}
+                disabled={commentMutation.isPending || commentBody.trim().length === 0}
+                onClick={() => commentMutation.mutate({ kodeDisplay, body: commentBody })}
+              >
+                <Icons.send className='size-4' />
+                Kirim Komentar
+              </LoadingButton>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
 

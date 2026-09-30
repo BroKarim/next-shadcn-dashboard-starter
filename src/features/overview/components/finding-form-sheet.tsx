@@ -47,7 +47,7 @@ function toFormValues(finding?: Finding): FindingFormValues {
 
 /**
  * Create/edit sheet for a finding. The server action re-validates and enforces
- * `requireRole('editor')`; the form only mirrors the same Zod schema.
+ * `requireRole('admin')`; the form only mirrors the same Zod schema.
  */
 export function FindingFormSheet({ finding, open, onOpenChange }: FindingFormSheetProps) {
   const isEdit = finding !== undefined;

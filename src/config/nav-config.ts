@@ -7,7 +7,7 @@ import { NavGroup } from '@/types';
  *
  * Access control:
  * An item can carry an `access` property with the minimum application role
- * required to see it (`user` < `editor` < `admin`). This only hides items in
+ * required to see it (`user` < `admin`). This only hides items in
  * the UI — every mutation must still be authorized server-side.
  *
  * Example:

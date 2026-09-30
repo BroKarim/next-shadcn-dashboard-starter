@@ -1,6 +1,6 @@
 # Clerk Setup Guide
 
-This project uses Clerk for authentication only: one institution, one tenant. **Clerk Organizations and Clerk Billing are not used** — access levels are application roles (`user`, `editor`, `admin`), see `docs/nav-rbac.md`.
+This project uses Clerk for authentication only: one institution, one tenant. **Clerk Organizations and Clerk Billing are not used** — access levels are application roles (`user`, `admin`), see `docs/nav-rbac.md`.
 
 ## 1. Get API keys
 
@@ -36,7 +36,6 @@ Roles are stored in each user's `publicMetadata.role` and must only be written s
 | Value    | Access                          |
 | -------- | ------------------------------- |
 | `user`   | Read-only (default)             |
-| `editor` | Edit operational finding data   |
 | `admin`  | Full access, user & role management |
 
 Set it in the Clerk Dashboard under **Users → (user) → Metadata → Public**, e.g.:

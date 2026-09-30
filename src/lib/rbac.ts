@@ -26,8 +26,7 @@ import type { AppRole } from '@/types';
 
 const ROLE_RANK: Record<AppRole, number> = {
   user: 0,
-  editor: 1,
-  admin: 2
+  admin: 1
 };
 
 function parseInitialAdminEmails(): string[] {
@@ -38,7 +37,7 @@ function parseInitialAdminEmails(): string[] {
 }
 
 function toAppRole(value: string): AppRole {
-  return value === 'admin' || value === 'editor' ? value : 'user';
+  return value === 'admin' ? 'admin' : 'user';
 }
 
 export function isInitialAdminEmail(email: string): boolean {
@@ -130,6 +129,21 @@ export async function requireActorIdentity(): Promise<{
   await requireAuth();
   const row = await ensureCurrentUser();
   return { id: row.id, email: row.email, name: row.name };
+}
+
+/**
+ * Read-only email for UI affordances (e.g. showing "delete" on own comments).
+ * Never creates a row and never calls the Clerk Backend API.
+ */
+export async function getCurrentUserEmail(): Promise<string | null> {
+  const userId = await requireAuth();
+
+  const [row] = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.clerkUserId, userId));
+
+  return row?.email ?? null;
 }
 
 /** Enforce the minimum application role; used by every mutation (D17). */

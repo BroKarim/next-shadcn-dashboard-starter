@@ -15,6 +15,13 @@
       "when": 1790580522558,
       "tag": "0001_parallel_tinkerer",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790736390053,
+      "tag": "0002_tearful_triathlon",
+      "breakpoints": true
     }
   ]
 }

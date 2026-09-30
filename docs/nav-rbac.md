@@ -11,7 +11,6 @@ Navigation visibility is filtered client-side by **application role**. One insti
 | Role     | Meaning                             |
 | -------- | ----------------------------------- |
 | `user`   | Read-only (default for every user)  |
-| `editor` | May edit operational finding data   |
 | `admin`  | Full access, including user/role management |
 
 Roles live in the local `users` table of the PostgreSQL database — the database is the source of truth, not Clerk metadata (task_plan.md D15):
@@ -19,7 +18,7 @@ Roles live in the local `users` table of the PostgreSQL database — the databas
 | Column          | Notes                                            |
 | --------------- | ------------------------------------------------ |
 | `clerk_user_id` | Keys the row against the signed-in Clerk user    |
-| `role`          | `user` \| `editor` \| `admin`, default `user`    |
+| `role`          | `user` \| `admin`, default `user`    |
 
 - The row is created lazily by `ensureCurrentUser()` (`src/lib/rbac.ts`) the first time the user performs a mutation; an existing role is never rewritten there.
 - `INITIAL_ADMIN_EMAILS` (comma-separated) elevates a user to `admin` only when their row is first created. As a bootstrap exception, the dashboard layout may create the row on first visit for allowlisted emails so the first admin never appears as `user`.
@@ -44,7 +43,7 @@ Roles live in the local `users` table of the PostgreSQL database — the databas
 }
 ```
 
-`access.role` is a **minimum**: an `admin` sees items that require `editor` or `user`. Omit `access` for items everyone should see.
+`access.role` is a **minimum**: an `admin` sees items that require `user`. Omit `access` for items everyone should see.
 
 ```tsx
 // any client component

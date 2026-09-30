@@ -125,7 +125,7 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 export async function createFinding(input: FindingFormValues): Promise<{ kodeDisplay: string }> {
-  await requireRole('editor');
+  await requireRole('admin');
   const values = parseInput(input);
   const actor = await requireActorIdentity();
 
@@ -156,7 +156,7 @@ export async function updateFinding(
   kodeDisplay: string,
   input: FindingFormValues
 ): Promise<{ changed: boolean; diff: FieldDiff }> {
-  await requireRole('editor');
+  await requireRole('admin');
   const values = parseInput(input);
   const actor = await requireActorIdentity();
 
@@ -191,7 +191,7 @@ export async function updateFinding(
 }
 
 export async function softDeleteFinding(kodeDisplay: string): Promise<{ deleted: boolean }> {
-  await requireRole('editor');
+  await requireRole('admin');
   const actor = await requireActorIdentity();
 
   return db.transaction(async (tx) => {
@@ -260,9 +260,9 @@ export async function restoreFinding(kodeDisplay: string): Promise<{ restored: b
 // lives in `import-core.ts` so it can be integration tested without Clerk.
 // ---------------------------------------------------------------------------
 
-/** Imports are editor/admin only (D17). */
+/** Imports are admin-only (D17/D37). */
 export async function importFindingsXlsx(formData: FormData): Promise<ImportSummary> {
-  await requireRole('editor');
+  await requireRole('admin');
   const actor = await requireActorIdentity();
 
   const file = formData.get('file');
@@ -283,7 +283,7 @@ export async function importFindingsXlsx(formData: FormData): Promise<ImportSumm
  * The UI shows an inline warning; the import itself is never blocked here.
  */
 export async function checkImportFileHash(fileHash: string) {
-  await requireRole('editor');
+  await requireRole('admin');
 
   const normalized = fileHash.toLowerCase();
   if (!/^[0-9a-f]{64}$/.test(normalized)) {
@@ -295,11 +295,12 @@ export async function checkImportFileHash(fileHash: string) {
 
 // ---------------------------------------------------------------------------
 // Discussion comments (D14): separate from `activities` — writing a comment
-// never touches the activity timeline. Only editor/admin may comment.
+// never touches the activity timeline. Every signed-in user may comment; the
+// author may delete their own comment, admins may delete any (D37).
 // ---------------------------------------------------------------------------
 
 export async function createComment(kodeDisplay: string, body: string): Promise<{ id: string }> {
-  await requireRole('editor');
+  await requireRole('user');
   const actor = await requireActorIdentity();
   const text = body.trim();
 
@@ -336,7 +337,7 @@ export async function createComment(kodeDisplay: string, body: string): Promise<
 }
 
 export async function deleteComment(commentId: string): Promise<{ deleted: boolean }> {
-  await requireRole('editor');
+  await requireRole('user');
   const actor = await requireActorIdentity();
 
   return db.transaction(async (tx) => {
@@ -345,7 +346,7 @@ export async function deleteComment(commentId: string): Promise<{ deleted: boole
       throw new NotFoundError('Komentar tidak ditemukan.');
     }
 
-    // Deleting someone else's comment requires admin (editor may delete own).
+    // Deleting someone else's comment requires admin (the author may delete their own).
     if (row.authorUserId !== actor.id) {
       await requireRole('admin');
     }
@@ -364,7 +365,7 @@ export async function uploadAttachment(
   kodeDisplay: string,
   formData: FormData
 ): Promise<{ id: string; fileName: string }> {
-  await requireRole('editor');
+  await requireRole('admin');
   const actor = await requireActorIdentity();
 
   const file = formData.get('file');
@@ -420,7 +421,7 @@ export async function uploadAttachment(
 }
 
 export async function deleteAttachment(attachmentId: string): Promise<{ deleted: boolean }> {
-  await requireRole('editor');
+  await requireRole('admin');
   const actor = await requireActorIdentity();
 
   return db.transaction(async (tx) => {

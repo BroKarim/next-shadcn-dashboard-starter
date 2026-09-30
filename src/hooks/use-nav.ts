@@ -18,8 +18,7 @@ import type { AppRole, NavGroup, NavItem } from '@/types';
 
 const ROLE_RANK: Record<AppRole, number> = {
   user: 0,
-  editor: 1,
-  admin: 2
+  admin: 1
 };
 
 /**
@@ -30,7 +29,7 @@ const ROLE_RANK: Record<AppRole, number> = {
 export function useAppRole(): AppRole {
   const { user } = useUser();
   const role = user?.publicMetadata?.role;
-  return role === 'admin' || role === 'editor' ? role : 'user';
+  return role === 'admin' ? 'admin' : 'user';
 }
 
 function isVisible(item: NavItem, role: AppRole): boolean {

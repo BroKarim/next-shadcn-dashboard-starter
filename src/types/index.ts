@@ -1,7 +1,10 @@
 import { Icons } from '@/components/icons';
 
-/** Application role. `user` is read-only, `editor`/`admin` may mutate. */
-export type AppRole = 'user' | 'editor' | 'admin';
+/**
+ * Application role for this internal app: `user` may read everything and write
+ * comments, `admin` may do everything (findings, imports, attachments, roles).
+ */
+export type AppRole = 'user' | 'admin';
 
 /** Minimum application role required to see a navigation item. */
 export interface PermissionCheck {

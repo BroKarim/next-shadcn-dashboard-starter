@@ -11,10 +11,9 @@ Fokus tahap pertama hanya BPK. KAP/Management Letter belum masuk scope UI awal.
 - Satu baris tabel mewakili satu temuan dan satu rekomendasi.
 - Kolom utama: ID, Status, Tahun, Kode Temuan, Kode Rekomendasi, Judul Pemeriksaan, Nilai Temuan, dan Aksi.
 - Identitas pencocokan impor: `NoSatker + Tahun + Kode Temuan + Kode Rekomendasi`.
-- Admin dapat mengunggah XLSX, menambah temuan manual, memperbarui data, menghapus temuan, mengunggah berkas, mengatur pengguna, dan memberi hak edit.
-- User biasa dapat melihat seluruh data secara read-only. Hak edit diberikan admin jika diperlukan.
-- User dengan hak edit dapat mengubah data operasional seperti Unit Kerja, catatan, komentar, dan lampiran.
-- Komentar hanya dapat ditulis admin atau user yang memiliki hak edit; user read-only hanya dapat membaca.
+- Aplikasi ini hanya dipakai internal, jadi hanya ada dua peran: `admin` dan `user`.
+- Admin dapat melakukan segalanya: mengunggah XLSX, menambah/memperbarui/menghapus temuan, mengunggah berkas, mengatur pengguna, dan mengubah data operasional seperti Unit Kerja dan catatan.
+- User biasa dapat membaca seluruh data dan menulis komentar pada Diskusi; aksi pengelolaan data (temuan, impor, lampiran) hanya untuk admin. Penulis boleh menghapus komentarnya sendiri, admin boleh menghapus komentar siapa pun.
 - Perubahan admin/user dan aktivitas penting dicatat pada timeline dengan tanggal dan email pelaku. Aktivitas komentar tidak dimasukkan ke timeline aktivitas admin.
 - Jika impor XLSX menemukan identitas yang sama, kolom resmi SILAHAP yang berubah diperbarui: Status Tindak Lanjut, Alasan Ditolak, Deskripsi Tindak Lanjut, Tanggal Tindak Lanjut, Tanggal Terakhir Update, dan Nilai Temuan. Data internal seperti komentar, lampiran, dan catatan tidak boleh hilang.
 - Nilai Temuan selalu numerik, sehingga tidak membutuhkan AI untuk ekstraksi nominal.
@@ -50,7 +49,7 @@ Satu halaman panjang tanpa tab, dengan urutan:
 1. Ringkasan temuan dan tombol edit.
 2. Informasi pemeriksaan: judul, uraian temuan, uraian rekomendasi, deskripsi tindak lanjut.
 3. Dokumen pendukung: upload, daftar file, dan lihat/preview PDF.
-4. Diskusi: komentar dan composer untuk admin/editor.
+4. Diskusi: daftar komentar dan composer untuk semua pengguna yang login.
 5. Riwayat aktivitas: perubahan data resmi/internal, impor, tambah, hapus, dan upload berkas dengan tanggal serta email.
 
 ## Prinsip Implementasi UI

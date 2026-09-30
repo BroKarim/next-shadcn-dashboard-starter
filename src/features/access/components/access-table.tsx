@@ -26,8 +26,7 @@ import { formatDate } from '@/features/findings/utils/format';
 import type { AppRole } from '@/types';
 
 const ROLE_OPTIONS: { value: AppRole; label: string }[] = [
-  { value: 'user', label: 'User (read-only)' },
-  { value: 'editor', label: 'Editor (ubah data temuan)' },
+  { value: 'user', label: 'User (baca data + komentar)' },
   { value: 'admin', label: 'Admin (semua akses)' }
 ];
 

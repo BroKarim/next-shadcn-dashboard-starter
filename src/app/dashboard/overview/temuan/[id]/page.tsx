@@ -9,7 +9,7 @@ import { FindingDetailActions } from '@/features/overview/components/finding-det
 import { findingDetailOptions } from '@/features/findings/api/queries';
 import { NotFoundError } from '@/lib/errors';
 import { getQueryClient } from '@/lib/query-client';
-import { getAppRoleWithBootstrap } from '@/lib/rbac';
+import { getAppRoleWithBootstrap, getCurrentUserEmail } from '@/lib/rbac';
 
 export const metadata = {
   title: 'Dashboard : Detail Temuan'
@@ -20,8 +20,11 @@ type PageProps = { params: Promise<{ id: string }> };
 export default async function TemuanDetailPage({ params }: PageProps) {
   const { id } = await params;
   const queryClient = getQueryClient();
-  const appRole = await getAppRoleWithBootstrap();
-  const canManage = appRole !== 'user';
+  const [appRole, currentUserEmail] = await Promise.all([
+    getAppRoleWithBootstrap(),
+    getCurrentUserEmail()
+  ]);
+  const canManage = appRole === 'admin';
 
   let detail;
   try {
@@ -48,7 +51,7 @@ export default async function TemuanDetailPage({ params }: PageProps) {
             <Button
               variant='outline'
               disabled
-              title='Aksi pengelolaan temuan memerlukan hak akses editor atau admin.'
+              title='Aksi pengelolaan temuan memerlukan hak akses admin.'
             >
               Edit Temuan
             </Button>
@@ -61,6 +64,7 @@ export default async function TemuanDetailPage({ params }: PageProps) {
           kodeDisplay={detail.finding.kodeDisplay}
           canManage={canManage}
           canDeleteComment={appRole === 'admin'}
+          currentUserEmail={currentUserEmail}
         />
       </HydrationBoundary>
     </PageContainer>
