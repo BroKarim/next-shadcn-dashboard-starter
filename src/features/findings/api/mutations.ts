@@ -22,6 +22,10 @@ import { findingKeys } from './queries';
  * Client-side mutation options for finding writes. Invalidating
  * `findingKeys.all` refreshes the table, KPI, charts, activity panel and any
  * open detail query after a mutation.
+ *
+ * Invalidation hangs off `onSettled`, not `onSuccess`: call sites spread these
+ * options and override `onSuccess` with their own toast, which would silently
+ * drop an `onSuccess` defined here (the comments list never refreshing).
  */
 
 const invalidateFindings = () => {
@@ -30,28 +34,28 @@ const invalidateFindings = () => {
 
 export const createFindingMutation = mutationOptions({
   mutationFn: (values: FindingFormValues) => createFinding(values),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const updateFindingMutation = mutationOptions({
   mutationFn: ({ kodeDisplay, values }: { kodeDisplay: string; values: FindingFormValues }) =>
     updateFinding(kodeDisplay, values),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const softDeleteFindingMutation = mutationOptions({
   mutationFn: (kodeDisplay: string) => softDeleteFinding(kodeDisplay),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const restoreFindingMutation = mutationOptions({
   mutationFn: (kodeDisplay: string) => restoreFinding(kodeDisplay),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const importFindingsXlsxMutation = mutationOptions({
   mutationFn: (formData: FormData) => importFindingsXlsx(formData),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 /** Duplicate-file preflight: read-only, never invalidates anything. */
@@ -62,21 +66,21 @@ export const checkImportFileHashMutation = mutationOptions({
 export const createCommentMutation = mutationOptions({
   mutationFn: ({ kodeDisplay, body }: { kodeDisplay: string; body: string }) =>
     createComment(kodeDisplay, body),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const deleteCommentMutation = mutationOptions({
   mutationFn: (commentId: string) => deleteComment(commentId),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const uploadAttachmentMutation = mutationOptions({
   mutationFn: ({ kodeDisplay, formData }: { kodeDisplay: string; formData: FormData }) =>
     uploadAttachment(kodeDisplay, formData),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });
 
 export const deleteAttachmentMutation = mutationOptions({
   mutationFn: (attachmentId: string) => deleteAttachment(attachmentId),
-  onSuccess: invalidateFindings
+  onSettled: invalidateFindings
 });

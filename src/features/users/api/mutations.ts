@@ -6,7 +6,8 @@ import type { UserMutationPayload } from './types';
 
 export const createUserMutation = mutationOptions({
   mutationFn: (data: UserMutationPayload) => createUser(data),
-  onSuccess: () => {
+  // `onSettled`: call sites override onSuccess with their own toast.
+  onSettled: () => {
     getQueryClient().invalidateQueries({ queryKey: userKeys.all });
   }
 });
@@ -14,14 +15,16 @@ export const createUserMutation = mutationOptions({
 export const updateUserMutation = mutationOptions({
   mutationFn: ({ id, values }: { id: number; values: UserMutationPayload }) =>
     updateUser(id, values),
-  onSuccess: () => {
+  // `onSettled`: call sites override onSuccess with their own toast.
+  onSettled: () => {
     getQueryClient().invalidateQueries({ queryKey: userKeys.all });
   }
 });
 
 export const deleteUserMutation = mutationOptions({
   mutationFn: (id: number) => deleteUser(id),
-  onSuccess: () => {
+  // `onSettled`: call sites override onSuccess with their own toast.
+  onSettled: () => {
     getQueryClient().invalidateQueries({ queryKey: userKeys.all });
   }
 });
