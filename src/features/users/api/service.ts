@@ -13,7 +13,7 @@
 // 2. Route Handlers + ORM
 //    → import { apiClient } from '@/lib/api-client'
 //    → return apiClient<UsersResponse>('/users?...')
-//    → Replace mock calls in route handlers (src/app/api/users/) with ORM
+//    → Replace the mock calls below with the real user store / ORM
 //
 // 3. BFF — Route Handlers proxy to external backend (Laravel, Go, etc.)
 //    → import { apiClient } from '@/lib/api-client'

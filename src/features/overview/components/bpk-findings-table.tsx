@@ -339,8 +339,8 @@ function FindingsTableResult({
                   key={row.id}
                   className='cursor-pointer'
                   onClick={(event) => {
-                    // Clicks inside the action cell (including the disabled
-                    // detail placeholder) must not open the summary drawer.
+                    // Clicks inside the action cell (open/edit/delete/detail
+                    // placeholder) must not open the summary drawer.
                     if ((event.target as HTMLElement).closest('[data-row-action]')) return;
                     openFinding(row.original);
                   }}

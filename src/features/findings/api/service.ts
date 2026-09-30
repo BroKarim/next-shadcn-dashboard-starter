@@ -117,6 +117,7 @@ function toFileType(value: string): FindingAttachment['fileType'] {
 function toCommentDTO(row: CommentRow): FindingComment {
   return {
     id: row.id,
+    authorUserId: row.authorUserId,
     authorName: row.authorName,
     authorEmail: row.authorEmail,
     body: row.body,

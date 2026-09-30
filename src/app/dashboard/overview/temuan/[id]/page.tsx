@@ -1,7 +1,6 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
@@ -11,7 +10,7 @@ import { FindingDetailActions } from '@/features/overview/components/finding-det
 import { findingDetailOptions } from '@/features/findings/api/queries';
 import { NotFoundError } from '@/lib/errors';
 import { getQueryClient } from '@/lib/query-client';
-import { getAppRoleWithBootstrap, getCurrentUserEmail } from '@/lib/rbac';
+import { getAppRoleWithBootstrap, getCurrentUserId } from '@/lib/rbac';
 
 export const metadata = {
   title: 'Dashboard : Detail Temuan'
@@ -30,9 +29,9 @@ export default async function TemuanDetailPage({ params }: PageProps) {
   }
 
   const queryClient = getQueryClient();
-  const [appRole, currentUserEmail] = await Promise.all([
+  const [appRole, currentUserId] = await Promise.all([
     getAppRoleWithBootstrap(),
-    getCurrentUserEmail()
+    getCurrentUserId()
   ]);
   const canManage = appRole === 'admin';
 
@@ -56,7 +55,7 @@ export default async function TemuanDetailPage({ params }: PageProps) {
         <div className='flex items-center gap-2'>
           <StatusBadge status={detail.finding.status} />
           {canManage ? (
-            <FindingDetailActions finding={detail.finding} isAdmin={appRole === 'admin'} />
+            <FindingDetailActions finding={detail.finding} />
           ) : (
             <Button
               variant='outline'
@@ -74,7 +73,7 @@ export default async function TemuanDetailPage({ params }: PageProps) {
           kodeDisplay={detail.finding.kodeDisplay}
           canManage={canManage}
           canDeleteComment={appRole === 'admin'}
-          currentUserEmail={currentUserEmail}
+          currentUserId={currentUserId}
         />
       </HydrationBoundary>
     </PageContainer>

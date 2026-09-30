@@ -11,7 +11,7 @@ import { FindingFormSheet } from './finding-form-sheet';
  * Header actions on the finding detail page: edit sheet plus soft delete.
  * A client component so the sheet state stays local to the header.
  */
-export function FindingDetailActions({ finding }: { finding: Finding; isAdmin: boolean }) {
+export function FindingDetailActions({ finding }: { finding: Finding }) {
   const [formOpen, setFormOpen] = React.useState(false);
 
   return (

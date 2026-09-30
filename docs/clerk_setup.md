@@ -31,11 +31,11 @@ NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/dashboard/overview"
 
 ## 3. Application roles
 
-Roles are stored in each user's `publicMetadata.role` and must only be written server-side (Clerk Dashboard or a protected server action).
+Roles are stored in the local `users.role` column and are the application's source of truth (D15); Clerk only provides identity. Admins change them on the `/dashboard/access` page.
 
 | Value    | Access                          |
 | -------- | ------------------------------- |
-| `user`   | Read-only (default)             |
+| `user`   | Read all data + write comments (default) |
 | `admin`  | Full access, user & role management |
 
 Set it in the Clerk Dashboard under **Users → (user) → Metadata → Public**, e.g.:

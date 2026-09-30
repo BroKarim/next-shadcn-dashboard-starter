@@ -7,7 +7,7 @@ Scope decisions, domain rules, and the phased build plan live in:
 - [`context.md`](./context.md) — product context and agreed decisions
 - [`task_plan.md`](./task_plan.md) — phased plan and current status
 
-**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo page, the Cmd+K command palette (header search) and the multi-theme selector are still available; remove them later if the BPK workflow does not need them. `/dashboard/overview` is now the **Dashboard Temuan BPK**: four KPI cards, a findings-per-year bar chart, an admin activity panel, six functional filters, a ten-row table and a summary drawer — all driven by dummy data in `src/features/overview/components/bpk-overview-data.ts`. The finding detail route, XLSX import and real admin actions are still pending (`task_plan.md` Phase 4-5).
+**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo, the Cmd+K command palette and the info sidebar have been removed; the multi-theme selector and the users demo remain. `/dashboard/overview` is the **Dashboard Temuan BPK** driven by PostgreSQL + Drizzle (KPI cards, findings-per-year chart, admin activity panel, six filters, paginated table, summary drawer); the finding detail route, XLSX import, attachments, comments and admin actions are implemented and documented in [`task_plan.md`](./task_plan.md) / [`docs/data.md`](./docs/data.md).
 
 ## Stack
 
@@ -15,7 +15,7 @@ Scope decisions, domain rules, and the phased build plan live in:
 | ------------ | ----------------------------------------------------------------- |
 | Framework    | Next.js 16 (App Router), React 19, TypeScript 5.7 (strict)        |
 | Styling      | Tailwind CSS v4, shadcn/ui (Base UI primitives), OKLCH theme vars |
-| Auth         | Clerk — single tenant, application roles `user`/`editor`/`admin`  |
+| Auth         | Clerk — single tenant, application roles `user`/`admin`           |
 | Data         | TanStack Query (SSR prefetch + `useSuspenseQuery`), nuqs, TanStack Table |
 | Forms        | TanStack Form + Zod, sonner for feedback                          |
 | Charts       | Recharts                                                         |
@@ -35,7 +35,7 @@ Required env: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`. Option
 ## Authentication and roles
 
 - `/dashboard` is protected with `await auth.protect()` in `src/app/dashboard/layout.tsx`.
-- Access levels are application roles stored in Clerk's server-controlled `publicMetadata.role`: `user` (read-only), `editor`, `admin`.
+- Access levels are application roles stored in the local `users.role` column (the database is the source of truth): `user` (read everything + write comments) and `admin` (everything). Clerk only provides identity.
 - Roles must be enforced in every server action / route handler. Client-side navigation filtering (`src/hooks/use-nav.ts`) is UX only — see [`docs/nav-rbac.md`](./docs/nav-rbac.md).
 
 ## Scripts
@@ -56,12 +56,12 @@ Required env: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`. Option
 ```plaintext
 src/
 ├── app/                     # App Router
-│   ├── dashboard/           # Protected shell (overview, product, users, profile)
+│   ├── dashboard/           # Protected shell (overview, access, users, profile)
 │   ├── sign-in/ sign-up/    # Clerk auth pages
-│   └── api/                 # Route handlers (users, products)
-├── components/              # ui/ primitives, layout/, forms/ fields, themes/, kbar/
+│   └── api/                 # Route handlers (authenticated attachment downloads)
+├── components/              # ui/ primitives, layout/, forms/ fields, themes/
 ├── features/                # Feature modules: api (types → service → queries) + components
-├── config/                  # nav-config, data-table, infobar content
+├── config/                  # nav-config, data-table
 ├── hooks/                   # use-data-table, use-nav, …
 ├── lib/                     # query-client, form, searchparams, utils
 └── styles/                  # globals.css, theme.css, themes/*.css

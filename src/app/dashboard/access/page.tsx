@@ -1,5 +1,6 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
-import { notFound } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { notFound, redirect } from 'next/navigation';
 
 import PageContainer from '@/components/layout/page-container';
 import { appUsersQueryOptions } from '@/features/access/api/queries';
@@ -12,6 +13,13 @@ export const metadata = {
 };
 
 export default async function AccessPage() {
+  // Pages render in parallel with the dashboard layout; redirect here too so a
+  // signed-out render never falls into the notFound() branch below.
+  const { userId } = await auth();
+  if (!userId) {
+    redirect(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? '/sign-in');
+  }
+
   const appRole = await getAppRoleWithBootstrap();
   if (appRole !== 'admin') {
     // Server-side guard: the nav item is hidden for non-admins, and the route

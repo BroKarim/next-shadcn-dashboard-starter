@@ -7,12 +7,9 @@
  * authorized again on the server (server action / route handler).
  *
  * The application role comes from the database (`users.role`) and is passed
- * down from the dashboard server layout as `appRole` (D27). The Clerk
- * `useAppRole()` helper below is deprecated and kept only for call sites that
- * have not been migrated yet.
+ * down from the dashboard server layout as `appRole` (D27).
  */
 
-import { useUser } from '@clerk/nextjs';
 import { useMemo } from 'react';
 import type { AppRole, NavGroup, NavItem } from '@/types';
 
@@ -20,17 +17,6 @@ const ROLE_RANK: Record<AppRole, number> = {
   user: 0,
   admin: 1
 };
-
-/**
- * @deprecated Roles are now resolved server-side from `users.role` and passed
- * to the client as `appRole`. Kept temporarily until every consumer is
- * migrated (task_plan.md §7).
- */
-export function useAppRole(): AppRole {
-  const { user } = useUser();
-  const role = user?.publicMetadata?.role;
-  return role === 'admin' ? 'admin' : 'user';
-}
 
 function isVisible(item: NavItem, role: AppRole): boolean {
   if (!item.access?.role) {

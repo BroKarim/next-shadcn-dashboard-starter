@@ -132,22 +132,20 @@ export async function requireActorIdentity(): Promise<{
 }
 
 /**
- * Read-only email for UI affordances (e.g. showing "delete" on own comments).
- * Never creates a row and never calls the Clerk Backend API. Returns `null`
- * when signed out — the dashboard layout owns the redirect.
+ * Read-only local `users.id` for UI affordances (e.g. showing "delete" on own
+ * comments — the server authorizes on the same uuid). Never creates a row and
+ * never calls the Clerk Backend API. Returns `null` when signed out — the
+ * dashboard layout owns the redirect.
  */
-export async function getCurrentUserEmail(): Promise<string | null> {
+export async function getCurrentUserId(): Promise<string | null> {
   const { userId } = await auth();
   if (!userId) {
     return null;
   }
 
-  const [row] = await db
-    .select({ email: users.email })
-    .from(users)
-    .where(eq(users.clerkUserId, userId));
+  const [row] = await db.select({ id: users.id }).from(users).where(eq(users.clerkUserId, userId));
 
-  return row?.email ?? null;
+  return row?.id ?? null;
 }
 
 /** Enforce the minimum application role; used by every mutation (D17). */

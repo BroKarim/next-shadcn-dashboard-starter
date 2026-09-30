@@ -57,16 +57,14 @@ const groups = useFilteredNavGroups(navGroups);
 
 Never rely on the nav hiding an item. Authorize every mutation:
 
-```tsx
-const { userId } = await auth();
-if (!userId) redirect('/sign-in');
+```ts
+import { requireRole } from '@/lib/rbac';
 
-const user = await currentUser();
-const role = user?.publicMetadata?.role === 'admin' ? 'admin' : 'user';
-if (role !== 'admin') throw new Error('Forbidden');
+await requireRole('admin'); // throws ForbiddenError when the role is insufficient
 ```
 
-See `AGENTS.md` → "Authentication Patterns" for a reusable `requireRole()` helper.
+Roles come from the local `users.role` column, resolved by `src/lib/rbac.ts` —
+never from Clerk `publicMetadata`. See `AGENTS.md` → "Authentication Patterns".
 
 ## Adding a new item
 

@@ -626,7 +626,7 @@ See "Theming System" section above or `docs/themes.md`.
 **Navigation items not showing**
 
 - Check the item's `access.role` in `src/config/nav-config.ts`
-- Verify the signed-in user's `users.role` row in the database (or temporarily their Clerk `publicMetadata.role` for legacy call sites)
+- Verify the signed-in user's `users.role` row in the database (roles are never read from Clerk metadata)
 
 ---
 

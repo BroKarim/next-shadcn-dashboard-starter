@@ -159,6 +159,8 @@ export interface Activity {
 
 export interface FindingComment {
   id: string;
+  /** Local `users.id`; null for seed rows (author_user_id is nullable). */
+  authorUserId: string | null;
   authorName: string | null;
   authorEmail: string;
   body: string;

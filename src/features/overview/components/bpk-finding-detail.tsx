@@ -184,14 +184,15 @@ export function BpkFindingDetail({
   kodeDisplay,
   canManage,
   canDeleteComment,
-  currentUserEmail
+  currentUserId
 }: {
   kodeDisplay: string;
   /** Admin-only data management (attachments upload/delete). */
   canManage: boolean;
   /** Admin may delete any comment; every author may delete their own. */
   canDeleteComment: boolean;
-  currentUserEmail: string | null;
+  /** Local `users.id` of the viewer, compared against the comment author. */
+  currentUserId: string | null;
 }) {
   const { data } = useSuspenseQuery(findingDetailOptions(kodeDisplay));
   const { finding, attachments, comments, activities } = data;
@@ -391,7 +392,8 @@ export function BpkFindingDetail({
                       <span className='text-muted-foreground text-xs tabular-nums'>
                         {formatDateTime(comment.createdAt)}
                       </span>
-                      {(canDeleteComment || comment.authorEmail === currentUserEmail) && (
+                      {(canDeleteComment ||
+                        (currentUserId !== null && comment.authorUserId === currentUserId)) && (
                         <Button
                           variant='ghost'
                           size='icon'
