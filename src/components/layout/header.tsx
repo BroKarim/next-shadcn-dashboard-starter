@@ -2,7 +2,6 @@ import React from 'react';
 import { SidebarTrigger } from '../ui/sidebar';
 import { Separator } from '../ui/separator';
 import { Breadcrumbs } from '../breadcrumbs';
-import SearchInput from '../search-input';
 import { ThemeSelector } from '../themes/theme-selector';
 import { ThemeModeToggle } from '../themes/theme-mode-toggle';
 
@@ -16,9 +15,6 @@ export default function Header() {
       </div>
 
       <div className='flex items-center gap-2 px-4'>
-        <div className='hidden md:flex'>
-          <SearchInput />
-        </div>
         <ThemeModeToggle />
         <div className='hidden sm:block'>
           <ThemeSelector />
