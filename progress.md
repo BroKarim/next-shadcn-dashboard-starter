@@ -117,3 +117,31 @@ Branch: `feat/admin-actions` (dari `87057ad`). Satu worktree.
 - **Verifikasi (Phase 6)**: typecheck lulus; lint 0 error (5 warning pre-existing `evilcharts/*`); format bersih; build lulus; seed idempotent; smoke `next start` (`/dashboard/access` 307, `/api/attachments/<id>` 401 `signed-out`, `/api/users` 200) dan tanpa kebocoran `DATABASE_URL` ke bundle klien. Jalur bootstrap admin terbukti nyata: baris `users` pemilik instance dibuat dengan role `admin`.
 - Catatan proses: pemeriksaan pertama terhadap route baru sempat menyesatkan (404) karena proses `next start` lama masih memegang port; setelah server dijalankan ulang di port bersih hasilnya benar.
 - Sisa untuk pengujian manual pemilik produk: interaksi browser penuh dengan sesi Clerk asli (form, impor berkas nyata, unggah/pratinjau lampiran, komentar, ubah role, drawer/filter/pagination, dark mode).
+
+## 2026-09-30 — Phase 8 (lanjutan) & Phase 9: verifikasi browser, perbaikan bug, trim template
+
+Branch Phase 8: `feat/import-guards-cleanup` (dari `6bf1518`). Branch Phase 9: `feat/browser-verification-fixes` (dari `508ee1f`). Satu worktree.
+
+### Phase 8 — guard impor, cleanup mock, verifikasi teknis
+
+- **Guard impor** (`5901559`, dirapikan `835342b`): `findBatchByFileHash()` (mengabaikan batch `failed`) + server action `checkImportFileHash` + warning inline non-blocking (SHA-256 dihitung lokal dengan `crypto.subtle`, tanpa unggah); `ImportSummary.staleActiveRows` menghitung baris aktif dengan `last_import_batch_id != batch ini` (NULL/seed dikecualikan; baris yang savepoint-nya rollback tidak dihitung lewat `notInArray`). Race condition ditutup dengan token `requestRef`.
+- **Cleanup mock** (`5b9c66a`): `getFindingFilterOptions()` (satu query `array_agg(DISTINCT … ORDER BY …)`) + key `filterOptions` di bawah `findingKeys.all`; dataset seed pindah ke `src/db/fixtures/findings.ts`; `bpk-overview-data.ts` dihapus.
+- **Verifikasi teknis** (`ffa98ba`, dok): typecheck, lint, format, build lulus; 16 → (setelah Phase 9) 19 test; seed idempotent; sanity opsi filter 6 tahun / 22 kode.
+- Keputusan: "preview sebelum commit" untuk impor dinyatakan **di luar scope** (D18 + `context.md` baris 19); diganti ringkasan pasca-impor + diff `activities`.
+
+### Phase 9 — temuan verifikasi browser (Playwright, build produksi, sesi Clerk asli)
+
+Urutan kerja: fix actor → fix form → simplifikasi role → trim template → perf → verifikasi → dokumentasi. Commit: `3ab5615`, `127fa7f`, `c18321c`, `922f50d`, `9c48d30`, `c51a83f`, `96af646`, `433acd2`, `9cd746e`, `8faf3fe`.
+
+- **Bug blocker 1 — semua aksi tulis 500** (`3ab5615`): `requireActorIdentity()` mengembalikan Clerk id (`user_...`) padahal kolom FK bertipe `uuid` mengacu `users.id` → komentar, lampiran, CRUD temuan, impor gagal `22P02`. Helper kini mengembalikan `{ id: users.id, email, name }`; `ImportActor.userId` → `id`; proteksi self-demote `setUserRole` (uuid vs Clerk id) ikut diperbaiki. Dikunci `src/lib/rbac.test.ts` (Clerk di-mock via `mock.module`, DB nyata) — termasuk insert komentar + lampiran (replikasi error user).
+- **Bug blocker 2 — `formContext` crash** (`127fa7f`): `form.SubmitButton` dirender tanpa `<form.AppForm>`; dibungkus sesuai `docs/forms.md`.
+- **Kebijakan role (D37)** (`c18321c`): aplikasi internal → hanya `user` + `admin`. Admin boleh segalanya; `user` baca semua + **boleh komentar** (hapus komentar sendiri; admin hapus semua). Aksi kelola data admin-only. Migrasi `drizzle/0002_tearful_triathlon.sql`: `UPDATE role='admin' WHERE role='editor'` lalu CHECK `('user','admin')`. `context.md`, `AGENTS.md`, `docs/nav-rbac.md`, `docs/clerk_setup.md`, `env.example.txt`, `README.md` diselaraskan. Helper baru `getCurrentUserId()` untuk URL/komponen.
+- **Bug — daftar tidak refresh** (`9cd746e`): call-site meng-override `onSuccess` sehingga invalidasi `mutationOptions` hilang; invalidasi dipindah ke `onSettled` (findings, access, users).
+- **Trim template** (`922f50d`, `9c48d30`, `c51a83f`): 16 Google Fonts → Geist + Geist Mono (tema discord/light-green/astro-vista/zen dialihkan); Infobar/InfoSidebar/InfoButton/infoconfig dan KBar (Cmd+K + `search-input` + dependensi `kbar`) dihapus; halaman `/dashboard/product` + `features/products/**` + `constants/mock-api.ts` + nav/breadcrumb dihapus. `/dashboard/users` dipertahankan (keputusan pemilik).
+- **Perf — overview 3 detik** (`96af646`): slot parallel-route sisa template `@area_stats/@bar_stats/@pie_stats/@sales` masih terdaftar; `@sales` menunggu `delay(3000)` di setiap request. Slot + komponen demo dihapus; delay mock users (800ms) dihapus; boundary error route ditulis ulang tanpa `stats-error`. Terukur **3.01s → 0.02s** (prod), route lain < 0.2s.
+- **Noise log** (`96af646`): `auth.protect()` pada instance Clerk dev lolos (`dev-browser-missing`) sehingga render paralel memanggil `requireAuth()` saat signed-out → `UnauthenticatedError` di log. Layout + halaman detail + halaman akses redirect eksplisit; `getAppRoleWithBootstrap()`/`getCurrentUserId()` mengembalikan default aman. Log bersih.
+- **Code review** (`8faf3fe`): temuan review diterapkan — hapus endpoint demo `/api/users` yang tidak terautentikasi dan tak terpakai, prop `isAdmin` mati, `useAppRole` mati, host gambar `slingacademy`, perbandingan author komentar lewat email → `users.id` (`authorUserId` ditambahkan ke `FindingComment`), guard signed-out di halaman akses, dan penyelarasan dokumentasi.
+- **Verifikasi browser nyata** (Playwright + Chrome sesi asli): komentar (kirim + auto-refresh), lampiran PDF (unggah + pratinjau + `GET /api/attachments/{id}` 200), form edit (submit sukses), impor XLSX (ringkasan `completed` + warning duplikat batch), soft delete/restore + toggle "tampilkan yang dihapus", dan peran `user` (komentar boleh; Unggah/Edit disabled; nav "Akses & Peran" tersembunyi). Data uji dibersihkan; DB kembali 22 temuan / 9 aktivitas / 3 komentar; storage bersih.
+- **Test**: `bun run test` → **19 lulus** (16 lama + 2 actor + 1 FK komentar/lampiran). Typecheck, lint (0 error; 5 warning pre-existing `evilcharts/*`), format, build semuanya lulus.
+- Catatan lingkungan: MCP Playwriter sempat gagal karena cache npx rusak (`@xmorse/playwright-core` hilang); dipasang ulang di cache npx sehingga pengujian browser bisa jalan.
+- Sisa: merge `feat/admin-actions` → `dev` → `main` dan branch `feat/browser-verification-fixes`; deploy ditunda.

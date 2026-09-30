@@ -6,7 +6,7 @@ Mengimplementasikan UI tahap pertama dashboard monitoring temuan BPK USK pada co
 
 ## Status
 
-`in_progress` — Phase 1–7 `complete`. Phase 8 dikerjakan di branch `feat/import-guards-cleanup` dari `6bf1518` (`feat/admin-actions`): langkah 2 (guard impor) dan 3 (cleanup mock) `complete` lewat commit `5901559` + `5b9c66a` + `835342b`; langkah 1 (verifikasi browser dengan login Clerk asli) dan 5 (merge `feat/admin-actions` → `dev` → `main`) masih `pending`. Ringkasan kronologis ada di `progress.md`, detail skema/data di `docs/data.md`.
+`in_progress` — Phase 1–7 `complete`; Phase 8 langkah 1–4 `complete` di branch `feat/import-guards-cleanup` (guard impor, cleanup mock, verifikasi teknis) dan **Phase 9 `complete`** di branch `feat/browser-verification-fixes` (perbaikan hasil verifikasi browser + simplifikasi role + trim template + perf). Sisa tunggal: **Phase 8 langkah 5 — merge `feat/admin-actions` → `dev` → `main`** (dan merge branch `feat/browser-verification-fixes`). Ringkasan kronologis ada di `progress.md`, detail skema/data di `docs/data.md`.
 
 ## Phases
 
@@ -54,7 +54,7 @@ Status: `complete`
 Status: `complete` — branch `feat/admin-actions`, commit `22d0d57` + `0015422` + `5d8b993` + `4ff95d5`.
 
 - **Pembeda admin vs user di overview** (permintaan pemilik produk): `bpk-overview.tsx` menerima `appRole`; `admin` melihat panel **Aktivitas Admin**, role lain melihat grafik baru **Nilai Temuan per Tahun** (`bpk-year-value-chart.tsx`, `SUM(nilai_temuan)` per tahun, sumbu ringkas rupiah). Prefetch di `overview/page.tsx` kondisional mengikuti role.
-- **Form tambah/edit temuan**: `finding-form-sheet.tsx` + `schemas/finding.ts` (TanStack Form + Zod), server action `createFinding`/`updateFinding` dengan `requireRole('editor')`, diff per kolom dicatat ke `activities`.
+- **Form tambah/edit temuan**: `finding-form-sheet.tsx` + `schemas/finding.ts` (TanStack Form + Zod), server action `createFinding`/`updateFinding` dengan `requireRole('editor')` (kini `'admin'` — lihat D37), diff per kolom dicatat ke `activities`.
 - **Soft delete + restore**: `softDeleteFinding` (editor) dan `restoreFinding` (**admin**); tabel punya dialog konfirmasi, penanda "Terhapus", dan switch "Tampilkan yang dihapus" (server menjaga `requireRole('admin')` pada `includeDeleted`).
 - **Impor XLSX**: SheetJS, satu transaksi dengan savepoint per baris (`import-core.ts`, dipisah agar bisa diuji integrasi), hanya 6 kolom resmi SILAHAP yang ditimpa, baris dilewati dilaporkan, ringkasan + berkas sumber di `import_batches` / `storage/imports/{batchId}.xlsx`.
 - **Lampiran**: unggah tervalidasi (magic bytes + ekstensi konsisten, maks 10 MB) ke `storage/attachments/{findingId}/{uuid}.{ext}`; pratinjau PDF/gambar dan unduh lewat route handler terautentikasi `GET /api/attachments/[id]` (401 bila belum login); hapus lampiran.
@@ -88,14 +88,14 @@ Branch: `feat/data-infra-findings` dari `891ff72`, dikerjakan di worktree tungga
 
 ### Phase 8 — Verifikasi browser, guard impor, cleanup mock, merge
 
-Status: `in_progress` — branch `feat/import-guards-cleanup` (dari `6bf1518` pada `feat/admin-actions`). Langkah 2, 3, dan 4 `complete`; langkah 1 dan 5 `pending`. Disepakati bersama pemilik produk lewat sesi grilling (semua rekomendasi disetujui, dengan dua koreksi fakta pada guard impor).
+Status: `in_progress` — branch `feat/import-guards-cleanup` (dari `6bf1518` pada `feat/admin-actions`). Langkah 1, 2, 3, dan 4 `complete`; langkah 5 (merge) `pending`. Disepakati bersama pemilik produk lewat sesi grilling. Verifikasi browser Langkah 1 menemukan bug dan memicu **Phase 9** (dikerjakan di branch baru `feat/browser-verification-fixes`).
 
 #### Langkah 2 — Guard impor: warning file hash + counter baris → `complete`
 
 Commit `5901559`, dirapikan oleh `835342b`.
 
 - `findBatchByFileHash(fileHash)` di `import-core.ts`: cari batch sebelumnya dengan `file_hash` sama, **mengabaikan batch `failed`** (batch itu tidak mendaratkan data apa pun sehingga bukan duplikat yang bermakna).
-- Client menghitung SHA-256 `crypto.subtle` lokal (berkas tidak diunggah untuk preflight) lalu memanggil server action `checkImportFileHash` (`requireRole('editor')` + validasi 64 hex). Hasilnya warning inline amber **non-blocking** di sheet impor: batch id, nama berkas, dan email pengunggah.
+- Client menghitung SHA-256 `crypto.subtle` lokal (berkas tidak diunggah untuk preflight) lalu memanggil server action `checkImportFileHash` (`requireRole('admin')` sejak D37 + validasi 64 hex). Hasilnya warning inline amber **non-blocking** di sheet impor: batch id, nama berkas, dan email pengunggah.
 - Race condition ditutup dengan token monotonik (`requestRef`), sehingga hasil hash berkas lama tidak muncul setelah memilih berkas lain atau menutup sheet.
 - `ImportSummary.staleActiveRows`: jumlah baris aktif yang punya `last_import_batch_id` dan **bukan** batch ini (baris aktif yang tidak terlihat di berkas). Kolom NULL — termasuk 22 baris seed yang tidak pernah diimpor — tidak dihitung. Baris yang sempat dicocokkan tetapi savepoint-nya rollback tetap dianggap "terlihat" (`notInArray` atas id yang dicoba) agar tidak salah masuk counter.
 - Ditampilkan di ringkasan impor: "N temuan aktif tidak ditemukan pada berkas ini. Mereka tidak dihapus." — D19 tetap berlaku (tidak ada penghapusan).
@@ -109,9 +109,19 @@ Commit `5b9c66a`.
 - `bpk-findings-table.tsx` membaca opsi dari `useQuery(findingFilterOptionsQueryOptions())` (non-suspense, kartu filter tetap ter-mount); `bpk-status-badge.tsx` memakai tipe kanonik `FindingStatus`.
 - Dataset seed pindah ke `src/db/fixtures/findings.ts` (`BPK_FINDINGS`, `BPK_ADMIN_ACTIVITIES`, `BPK_COMMENTS`; `BPK_ATTACHMENTS` dibuang karena lampiran tidak di-seed — D25); `src/features/overview/components/bpk-overview-data.ts` **dihapus**. Seed tetap idempotent (`bun run db:seed` → `inserted=0`).
 
-#### Langkah 1 — Verifikasi browser dengan login Clerk asli → `pending` (pemilik produk)
+#### Langkah 1 — Verifikasi browser dengan login Clerk asli → `complete`
 
-Checklist: form tambah/edit temuan (validasi + submit), hapus/restore + switch "Tampilkan yang dihapus", impor berkas XLSX asli (mapping + ringkasan + penyimpanan berkas sumber, termasuk warning hash dan counter `staleActiveRows`), unggah lampiran + pratinjau PDF/gambar + unduh, hapus lampiran, komentar (kirim, hapus sendiri/all oleh admin), halaman detail lintas section, ubah role di `/dashboard/access` (efek nav setelah reload), drawer, enam filter, pagination, sort, dark mode, responsif mobile/tablet/desktop. Bug kecil (label, spacing, toast ganda) → perbaiki + commit kecil; bug besar (desain/DB) → stop, grill ulang.
+Dijalankan lewat Playwright (Chrome + sesi Clerk asli) pada build produksi `next start`. Checklist terverifikasi nyata:
+
+- Komentar: kirim berhasil (server action + toast) **dan daftar langsung ter-refresh** tanpa reload; komentar tidak masuk Riwayat Aktivitas (D14).
+- Lampiran: unggah PDF berhasil, muncul di daftar + pratinjau iframe, dan `GET /api/attachments/{id}` → 200 `application/pdf` (terautentikasi); tombol hapus tampil.
+- Form temuan: sheet Edit terbuka (sebelumnya crash `formContext`) dan submit tanpa perubahan → toast "Tidak ada perubahan.".
+- Impor XLSX: berkas uji diimpor → "1 baru", ringkasan batch `completed`; memilih berkas yang sama lagi memunculkan warning inline duplikat (batch + nama berkas + email).
+- Soft delete: baris hilang dari daftar (badge "Terhapus" muncul saat switch "Tampilkan yang dihapus") dan **Pulihkan** mengembalikannya; panel aktivitas ikut ter-update live.
+- Peran `user` (role diturunkan sementara via DB): nav "Akses & Peran" tersembunyi, tombol Unggah Berkas/Edit Temuan disabled, **composer komentar tetap tampil dan berhasil mengirim**.
+- Perf: `/dashboard/overview` turun dari **3.01s → 0.02s**; route lain < 0.2s; log server bersih dari `UnauthenticatedError`.
+
+Bug yang ditemukan dan diperbaiki dicatat di Phase 9 di bawah.
 
 #### Langkah 4 — Verifikasi teknis ulang → `complete`
 
@@ -135,6 +145,43 @@ Checklist: form tambah/edit temuan (validasi + submit), hapus/restore + switch "
 4. Test integrasi memakai angka global yang rapuh → diubah ke baseline delta.
 
 Non-goals Phase 8: deploy (Vercel/Docker/managed Postgres) — ditunda, dibahas terpisah saat dijadwalkan pemilik; tidak ada fitur baru (deadline/overdue, KAP/Management Letter, notifikasi, ekspor); tidak ada perubahan skema DB.
+
+
+### Phase 9 — Perbaikan hasil verifikasi browser (branch `feat/browser-verification-fixes`)
+
+Status: `complete` — 9 commit, dibuat dari `508ee1f` (`feat/import-guards-cleanup`). Berisi perbaikan bug yang ditemukan saat verifikasi browser Phase 8, simplifikasi role, trim template, dan perbaikan performa. Belum di-merge.
+
+#### Bug yang diperbaiki
+
+1. **Semua aksi tulis gagal `invalid input syntax for type uuid`** (`3ab5615`). `requireActorIdentity()` mengembalikan Clerk userId (`user_...`) padahal kolom FK (`activities.actor_user_id`, `comments.author_user_id`, `attachments.uploaded_by_user_id`, `import_batches.uploaded_by_user_id`) bertipe `uuid` mengacu `users.id` — komentar, unggah lampiran, tambah/edit/hapus temuan, dan impor semuanya 500. Sekarang helper mengembalikan `{ id: users.id, email, name }`; `ImportActor.userId` → `id`. Ikut diperbaiki: proteksi self-demote `setUserRole` yang membandingkan uuid vs Clerk id (tidak pernah cocok). Dikunci `src/lib/rbac.test.ts` (Clerk di-mock, DB nyata) termasuk insert komentar + lampiran.
+2. **Error `formContext only works when within a formComponent`** (`127fa7f`). `form.SubmitButton` (formComponent `createFormHook`) dirender tanpa `<form.AppForm>` sehingga sheet tambah/edit temuan crash saat dibuka. Sesuai anatomi di `docs/forms.md`.
+3. **Daftar tidak ter-refresh setelah menulis** (`9cd746e`). Call-site meng-override `onSuccess` pada `mutationOptions`, sehingga invalidasi cache ikut hilang — komentar/lampiran baru dan hasil hapus/pulihkan tidak muncul tanpa reload. Invalidasi dipindah ke `onSettled` (call-site tidak meng-override-nya) untuk findings, access, dan users.
+4. **Overview 3 detik tiap request** (`96af646`). Slot parallel-route sisa template (`@area_stats/@bar_stats/@pie_stats/@sales`) masih terdaftar; `@sales` menunggu `delay(3000)`. Dihapus bersama komponen demo (area/bar/pie graph, recent-sales, stats-error). Terukur **3.01s → 0.02s**.
+5. **Noise `UnauthenticatedError` di log** (`96af646`). `auth.protect()` pada instance Clerk dev bisa lolos (`dev-browser-missing`) sehingga layout/halaman paralel memanggil `requireAuth()` saat signed-out. Layout + halaman detail + halaman akses kini redirect eksplisit; `getAppRoleWithBootstrap()`/`getCurrentUserId()` mengembalikan default aman, bukan melempar.
+
+#### Perubahan kebijakan role (D37)
+
+Aplikasi internal → role dipangkas menjadi **`user`** dan **`admin`** (`c18321c`). Admin boleh segalanya; user membaca semua data **dan menulis komentar** (boleh hapus komentarnya sendiri, admin boleh hapus semua). Aksi kelola data (temuan CRUD, impor, cek hash, lampiran) `requireRole('admin')`. Migrasi `drizzle/0002_tearful_triathlon.sql` memetakan baris `editor` lama → `admin` lalu mengganti CHECK. `context.md` baris 15–17 diperbarui.
+
+#### Trim template & kebersihan (`922f50d`, `9c48d30`, `c51a83f`, `8faf3fe`)
+
+- Font: 16 Google Fonts → Geist + Geist Mono; tema discord/light-green/astro-vista/zen dialihkan ke Geist.
+- Info sidebar (Infobar/InfoSidebar/InfoButton/infoconfig, 762 baris) dan command palette Cmd+K (beserta dependensi `kbar` dan `search-input`) dihapus.
+- Halaman demo `/dashboard/product` (+ `features/products`, `constants/mock-api.ts`, item nav & breadcrumb) dihapus. Halaman `/dashboard/users` (demo, mock) **dipertahankan** atas permintaan pemilik.
+- Delay buatan `800ms` di mock users dihapus; endpoint demo `/api/users` yang tidak terautentikasi dan tak terpakai dihapus; sisa temuan review (prop `isAdmin` mati, `useAppRole` mati, host gambar `slingacademy`, perbandingan author via email → `users.id`) dibersihkan; README/docs diselaraskan ke model dua-role.
+
+#### Verifikasi Phase 9
+
+- `bun run typecheck` lulus; `bun run lint` 0 error (5 warning pre-existing `evilcharts/*`); `bun run format:check` bersih; `bun run build` lulus.
+- `bun run test`: **19 test lulus** (16 lama + 2 test actor + 1 test FK komentar/lampiran); seed tetap idempotent (`inserted=0`).
+- Verifikasi browser (Playwright, build produksi, sesi Clerk asli): komentar (kirim + auto-refresh), lampiran (unggah PDF + pratinjau + unduh terautentikasi 200), form edit (submit sukses), impor XLSX (ringkasan + warning duplikat), soft delete/restore (+ toggle "tampilkan yang dihapus"), dan peran `user` (komentar boleh, aksi admin disabled, nav terfilter). Data uji dibersihkan setelahnya (DB kembali ke 22 temuan/9 aktivitas/3 komentar).
+- Perf prod: `/dashboard/overview` 0.02s, route lain < 0.2s, tanpa error log.
+
+#### Sisa Phase 9
+
+- Belum di-merge ke `dev`/`main`.
+- `use-breadcrumbs`/users demo masih mock (sesuai keputusan mempertahankan halaman users).
+- Warning `nuqs` (`limitUrlUpdates: debounce` dengan `shallow` default) masih muncul di console — pre-existing, belum ditindak.
 
 ---
 
@@ -208,10 +255,14 @@ Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.
 
 ### Sisa / utang teknis
 
-- Verifikasi browser dengan login Clerk asli (lihat Phase 6 + Phase 8 Langkah 1) — belum dilakukan.
-- ~~`bpk-overview-data.ts` masih dipakai sebagai sumber seed + data halaman lama~~ **selesai di Phase 8**: dataset pindah ke `src/db/fixtures/findings.ts`, file mock dihapus, opsi filter dibaca dari DB (`getFindingFilterOptions()`).
+- ~~Verifikasi browser dengan login Clerk asli~~ **selesai di Phase 8 Langkah 1 + Phase 9** (Playwright, build produksi, sesi asli).
+- ~~`bpk-overview-data.ts`~~ **selesai di Phase 8**: dataset pindah ke `src/db/fixtures/findings.ts`, file mock dihapus, opsi filter dibaca dari DB (`getFindingFilterOptions()`).
 - Impor hanya memetakan 6 kolom resmi; kolom internal tidak pernah ditimpa (disengaja). Preview sebelum commit **tidak** dibuat (D18 + `context.md` baris 19) — diganti ringkasan pasca-impor + diff di `activities`.
-- Perubahan role di halaman akses baru terlihat di sidebar setelah reload (role dibaca di server layout).
+- Perubahan role di halaman akses baru terlihat di sidebar setelah reload (role dibaca di server layout) — perilaku yang diterima (D37).
+- Belum di-merge: `feat/admin-actions` → `dev` → `main`, dan branch `feat/browser-verification-fixes`.
+- Halaman `/dashboard/users` masih memakai data mock (`constants/mock-api-users.ts`), dipertahankan sebagai demo atas permintaan pemilik.
+- Warning `nuqs` (`limitUrlUpdates: debounce` + `shallow` default) di console — pre-existing, belum ditindak.
+- Compiler `removeConsole` hanya pada build produksi; satu `console.error` preflight impor sengaja dibiarkan.
 
 ---
 
@@ -224,11 +275,14 @@ Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.
 - Deadline/overdue ditunda.
 - Clerk Organizations tidak diwajibkan untuk single-tenant USK; gunakan Clerk Auth + role aplikasi yang diperiksa di server.
 - Tombol Tambah Temuan dan Impor XLSX membutuhkan login dan permission aksi.
-- **Pembeda tampilan per role**: admin melihat panel Aktivitas Admin; `user`/`editor` melihat grafik nilai temuan (rupiah) per tahun. Prefetch halaman mengikuti role agar tidak mengambil data yang tidak ditampilkan.
+- **Pembeda tampilan per role**: admin melihat panel Aktivitas Admin; `user` melihat grafik nilai temuan (rupiah) per tahun. Prefetch halaman mengikuti role agar tidak mengambil data yang tidak ditampilkan.
 - **Akses & Peran hanya untuk admin**, baik route (`notFound()`), service (`requireRole('admin')`), maupun item nav (`access: { role: 'admin' }`). Admin tidak boleh menurunkan role-nya sendiri (mencegah instance kehilangan admin terakhir).
 - **Impor hanya menimpa 6 kolom resmi SILAHAP**; kolom internal (unit kerja, komentar, lampiran, penanda hapus) tidak pernah diubah berkas XLSX. Setiap impor selalu memperbarui `last_seen_in_import_at` + `last_import_batch_id`.
 - **Lampiran diakses lewat route handler terautentikasi**, bukan berkas statis di `public/`; metadata di DB, isi berkas di `storage/`.
 - **Test memakai Bun runner** (`bun run test`), dengan preload `.env.local` dan `--conditions=react-server`; helper murni diuji unit, transaksi impor diuji integrasi terhadap DB lokal.
+- **D37 — hanya dua role (`user`, `admin`)** karena aplikasi internal. Admin boleh segalanya; `user` membaca semua data **dan menulis komentar** (hapus komentar sendiri; admin hapus semua). Aksi kelola data (temuan, impor, lampiran) admin-only. Baris `editor` lama dipetakan ke `admin` oleh migrasi `0002`.
+- **D38 — invalidasi cache memakai `onSettled`, bukan `onSuccess`**, karena call-site meng-override `onSuccess` dengan toast-nya.
+- **D39 — tidak ada penundaan buatan** di jalur produksi (slot `@sales` `delay(3000)` dan `delay(800)` mock users dihapus); template demo (product, kbar, infobar) dihapus, font dibatasi ke Geist.
 
 ## Errors Encountered
 
@@ -243,6 +297,12 @@ Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.
 | Test integrasi menyisakan baris `activities` batch | 2 | Cleanup harus hapus aktivitas batch sebelum baris batch (urutan awal salah) |
 | Smoke test route baru memberi 404 palsu | 1 | Proses `next start` lama masih memegang port; jalankan ulang di port bersih → hasil benar (307/401) |
 | `server-only` melempar saat dijalankan lewat `bun` CLI | 1 | Jalankan test dengan `--conditions=react-server` + preload `.env.local` via `bunfig.toml` |
+| Komentar/unggah/impor 500 `invalid input syntax for type uuid: "user_..."` | 1 | `requireActorIdentity()` mengembalikan Clerk id padahal kolom FK `uuid` mengacu `users.id`; helper kini mengembalikan `users.id` (`3ab5615`, dikunci `rbac.test.ts`) |
+| Sheet tambah/edit temuan crash `formContext only works when within a formComponent` | 1 | `form.SubmitButton` dirender tanpa `<form.AppForm>`; dibungkus sesuai anatomi `docs/forms.md` (`127fa7f`) |
+| Komentar/lampiran tersimpan tapi daftar tidak ter-refresh | 1 | Call-site meng-override `onSuccess` sehingga invalidasi `mutationOptions` hilang; dipindah ke `onSettled` (`9cd746e`) |
+| `/dashboard/overview` lambat konsisten 3.0s | 1 | Slot parallel-route lama `@sales` menunggu `delay(3000)`; slot + komponen demo dihapus → 0.02s (`96af646`) |
+| `UnauthenticatedError` di log saat signed-out | 1 | Instance Clerk dev meneruskan `auth.protect()` (`dev-browser-missing`); layout/halaman redirect eksplisit + helper read mengembalikan default aman (`96af646`) |
+| Playwriter MCP gagal (`@xmorse/playwright-core` hilang) | 1 | Cache npx rusak; dipasang ulang di cache npx lalu tool jalan (perbaikan lingkungan, bukan repo) |
 
 ## Definition of Done (kondisi akhir)
 
@@ -250,8 +310,8 @@ Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.
 - Tulis/ubah data lewat server action dengan `requireRole()`; role bersumber dari `users.role` PostgreSQL.
 - Halaman detail, komentar, dan lampiran berfungsi di atas database; lampiran diakses lewat route terautentikasi.
 - Import XLSX, soft delete/restore, dan pengaturan role tersedia dan tercatat di `activities`.
-- Verifikasi yang tersedia selesai (typecheck, lint, format, build, 15 test, seed idempotent, smoke HTTP) atau kegagalannya tercatat di Errors Encountered.
-- Sisa tunggal: verifikasi interaksi browser dengan sesi Clerk asli oleh pemilik produk.
+- Verifikasi selesai: typecheck, lint, format, build, **19 test**, seed idempotent, dan verifikasi browser (Playwright) dengan sesi Clerk asli — semuanya lulus; kegagalan tercatat di Errors Encountered.
+- Sisa tunggal: merge `feat/admin-actions` → `dev` → `main` (+ branch `feat/browser-verification-fixes`). Deploy ditunda atas keputusan pemilik.
 
 ---
 
@@ -466,7 +526,7 @@ Status: `implemented` (Phase 7 selesai) — spesifikasi di bawah sudah dieksekus
 | D14 | Komentar **tidak** masuk `activities`; halaman detail tetap punya dua section terpisah: **Diskusi** (comments) dan **Riwayat Aktivitas** (activities). | koreksi R2-5 |
 | D15 | `users.role` = sumber kebenaran role aplikasi; Clerk `publicMetadata` tidak lagi dipakai untuk role aplikasi. | koreksi R2-3 |
 | D16 | `ensureCurrentUser()` lazy upsert: insert bila belum ada (role `user`, atau `admin` bila email ada di `INITIAL_ADMIN_EMAILS`); role yang sudah ada **tidak pernah** ditimpa. `auth()` hanya memberi `userId`, jadi email/nama diambil lewat `currentUser()` hanya pada jalur pembuatan baris atau pencatatan aktor. | koreksi R2-4, R2-15, tambahan T2 |
-| D17 | RBAC server `src/lib/rbac.ts`: `requireAuth()` + `requireRole('editor' \| 'admin')`; setiap mutation wajib memanggilnya di server. | koreksi R2-3 |
+| D17 | RBAC server `src/lib/rbac.ts`: `requireAuth()` + `requireRole(minimum)`; setiap mutation wajib memanggilnya di server. Sejak D37 nilai minimum tinggal `'user'`/`'admin'`. | koreksi R2-3, diperbarui D37 |
 | D18 | Impor XLSX: upsert **langsung** (tanpa staging/preview), satu transaksi per impor, diff before/after per temuan di `activities`, ringkasan di `import_batches`. | R2-1 (A) |
 | D19 | Baris yang hilang dari XLSX tidak dihapus/ditandai; hanya jejak `last_seen_in_import_at`. | R2-2 (B) |
 | D20 | Semua akses DB lewat Drizzle di server Next.js; tanpa RLS; permission diperiksa di aplikasi sebelum query/mutation. | koreksi R1-23 |
