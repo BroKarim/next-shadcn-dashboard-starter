@@ -43,7 +43,7 @@ export async function listAppUsers(): Promise<AppUsersPage> {
  * is the classic way to lock everyone out of the admin area.
  */
 export async function setUserRole(userId: string, role: AppRole): Promise<{ updated: boolean }> {
-  const actorUserId = await requireRole('admin');
+  await requireRole('admin');
   const actor = await requireActorIdentity();
 
   if (!['user', 'editor', 'admin'].includes(role)) {
@@ -57,7 +57,7 @@ export async function setUserRole(userId: string, role: AppRole): Promise<{ upda
     }
 
     const previousRole = toAppRole(target.role);
-    if (target.id === actorUserId && role !== 'admin') {
+    if (target.id === actor.id && role !== 'admin') {
       throw new ValidationError('Tidak bisa menurunkan role akun Anda sendiri.');
     }
     if (previousRole === role) {
@@ -72,7 +72,7 @@ export async function setUserRole(userId: string, role: AppRole): Promise<{ upda
       entityId: target.id,
       action: 'Perbarui Peran Pengguna',
       metadata: { email: target.email, from: previousRole, to: role },
-      actorUserId: actor.userId,
+      actorUserId: actor.id,
       actorEmail: actor.email
     });
 

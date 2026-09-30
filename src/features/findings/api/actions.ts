@@ -30,7 +30,8 @@ import { applyImport, findBatchByFileHash, type ImportSummary } from './import-c
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 interface Actor {
-  userId: string;
+  /** Local `users.id` (uuid) — FK columns reference this, not the Clerk id. */
+  id: string;
   email: string;
   name: string | null;
 }
@@ -112,7 +113,7 @@ async function logActivity(
     entityId: entry.entityId,
     action: entry.action,
     metadata: entry.metadata,
-    actorUserId: actor.userId,
+    actorUserId: actor.id,
     actorEmail: actor.email
   });
 }
@@ -323,7 +324,7 @@ export async function createComment(kodeDisplay: string, body: string): Promise<
       .insert(comments)
       .values({
         findingId: finding.id,
-        authorUserId: actor.userId,
+        authorUserId: actor.id,
         authorEmail: actor.email,
         authorName: actor.name,
         body: text
@@ -335,8 +336,8 @@ export async function createComment(kodeDisplay: string, body: string): Promise<
 }
 
 export async function deleteComment(commentId: string): Promise<{ deleted: boolean }> {
-  const userId = await requireRole('editor');
-  await requireActorIdentity();
+  await requireRole('editor');
+  const actor = await requireActorIdentity();
 
   return db.transaction(async (tx) => {
     const [row] = await tx.select().from(comments).where(eq(comments.id, commentId));
@@ -345,7 +346,7 @@ export async function deleteComment(commentId: string): Promise<{ deleted: boole
     }
 
     // Deleting someone else's comment requires admin (editor may delete own).
-    if (row.authorUserId !== userId) {
+    if (row.authorUserId !== actor.id) {
       await requireRole('admin');
     }
 
@@ -403,7 +404,7 @@ export async function uploadAttachment(
         fileType: resolved.fileType,
         mimeType: resolved.mimeType,
         sizeBytes: file.size,
-        uploadedByUserId: actor.userId,
+        uploadedByUserId: actor.id,
         uploadedByEmail: actor.email
       })
       .returning({ id: attachments.id });

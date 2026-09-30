@@ -19,7 +19,7 @@ import { db } from '@/db/client';
 import { activities, findings, importBatches } from '@/db/schema';
 import { applyImport, findBatchByFileHash, type ImportActor } from './import-core';
 
-const actor: ImportActor = { userId: null, email: 'test-importer@local', name: 'Test Importer' };
+const actor: ImportActor = { id: null, email: 'test-importer@local', name: 'Test Importer' };
 const PREFIX = 'TSTIMP';
 
 function buildWorkbook(rows: Record<string, unknown>[]): Buffer {

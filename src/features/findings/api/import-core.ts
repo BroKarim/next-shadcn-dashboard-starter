@@ -45,7 +45,8 @@ export interface ImportSummary {
 }
 
 export interface ImportActor {
-  userId: string | null;
+  /** Local `users.id` (uuid) — the FK columns reference that, never the Clerk id. */
+  id: string | null;
   email: string;
   name: string | null;
 }
@@ -116,7 +117,7 @@ export async function applyImport(
       .values({
         fileName,
         fileHash,
-        uploadedByUserId: actor.userId,
+        uploadedByUserId: actor.id,
         uploadedByEmail: actor.email,
         startedAt: new Date(),
         status: 'pending',
@@ -193,7 +194,7 @@ export async function applyImport(
                 importBatchId: batch.id,
                 kodeDisplay: inserted.kodeDisplay
               },
-              actorUserId: actor.userId,
+              actorUserId: actor.id,
               actorEmail: actor.email
             });
           });
@@ -231,7 +232,7 @@ export async function applyImport(
               entityId: existing.id,
               action: 'Perbarui Temuan',
               metadata: { source: 'import-xlsx', importBatchId: batch.id, ...diff },
-              actorUserId: actor.userId,
+              actorUserId: actor.id,
               actorEmail: actor.email
             });
           }
@@ -312,7 +313,7 @@ export async function applyImport(
         skipped: skipped.length,
         staleActiveRows
       },
-      actorUserId: actor.userId,
+      actorUserId: actor.id,
       actorEmail: actor.email
     });
 

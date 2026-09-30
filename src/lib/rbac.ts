@@ -114,17 +114,22 @@ export async function ensureCurrentUser() {
 }
 
 /**
- * Identity for the actor of a mutation (comments, timeline entries):
+ * Identity for the actor of a mutation (comments, timeline entries).
+ *
+ * `id` is the **local `users.id`** (uuid): every FK column that records the
+ * actor (`activities.actor_user_id`, `comments.author_user_id`,
+ * `attachments.uploaded_by_user_id`, `import_batches.uploaded_by_user_id`)
+ * references `users.id`, so the Clerk user id must never be handed to them.
  * `actor_email` / `author_email` snapshots always carry the Clerk email.
  */
 export async function requireActorIdentity(): Promise<{
-  userId: string;
+  id: string;
   email: string;
   name: string | null;
 }> {
-  const userId = await requireAuth();
+  await requireAuth();
   const row = await ensureCurrentUser();
-  return { userId, email: row.email, name: row.name };
+  return { id: row.id, email: row.email, name: row.name };
 }
 
 /** Enforce the minimum application role; used by every mutation (D17). */
