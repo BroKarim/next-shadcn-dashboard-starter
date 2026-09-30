@@ -1,5 +1,7 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
 import { notFound } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
@@ -19,6 +21,14 @@ type PageProps = { params: Promise<{ id: string }> };
 
 export default async function TemuanDetailPage({ params }: PageProps) {
   const { id } = await params;
+
+  // `fetchQuery` below throws (unlike `prefetchQuery`), so guard before it and
+  // let the sign-in redirect happen without logging an UnauthenticatedError.
+  const { userId } = await auth();
+  if (!userId) {
+    redirect(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? '/sign-in');
+  }
+
   const queryClient = getQueryClient();
   const [appRole, currentUserEmail] = await Promise.all([
     getAppRoleWithBootstrap(),

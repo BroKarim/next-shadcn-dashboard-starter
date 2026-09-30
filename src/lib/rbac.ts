@@ -133,10 +133,14 @@ export async function requireActorIdentity(): Promise<{
 
 /**
  * Read-only email for UI affordances (e.g. showing "delete" on own comments).
- * Never creates a row and never calls the Clerk Backend API.
+ * Never creates a row and never calls the Clerk Backend API. Returns `null`
+ * when signed out — the dashboard layout owns the redirect.
  */
 export async function getCurrentUserEmail(): Promise<string | null> {
-  const userId = await requireAuth();
+  const { userId } = await auth();
+  if (!userId) {
+    return null;
+  }
 
   const [row] = await db
     .select({ email: users.email })
@@ -173,6 +177,14 @@ export async function requireRole(minimum: AppRole): Promise<string> {
  * user row, and it is gated by the env allowlist.
  */
 export async function getAppRoleWithBootstrap(): Promise<AppRole> {
+  // Read-side helper: pages render in parallel with the dashboard layout, which
+  // owns the sign-in redirect. Return the lowest role instead of throwing so a
+  // signed-out render never logs an UnauthenticatedError.
+  const { userId } = await auth();
+  if (!userId) {
+    return 'user';
+  }
+
   const { role, exists } = await getAppRole();
   if (exists) {
     return role;
