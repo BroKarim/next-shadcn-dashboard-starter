@@ -42,7 +42,7 @@ src/features/findings/utils/  formatRupiah (string) dst.
 
 - **Nama kolom eksplisit** (`noSatker: text('no_satker')`); opsi `casing` Drizzle tidak dipakai.
 - **Uang = `numeric(18,2)`, DTO string** — dijumlahkan di SQL (`SUM`), tidak pernah dikonversi ke `number` di jalur data; diformat hanya saat render.
-- **Soft delete**: `deleted_at`; semua unique business key bersifat partial (`WHERE deleted_at IS NULL`); restore hanya lewat `restoreFinding()` + `requireRole('admin')` (Phase 5).
+- **Soft delete**: legacy `deleted_at` masih dipertahankan di schema/migrasi, tetapi tidak ada aksi UI/server yang mengekspos hapus atau restore temuan pada policy value-only saat ini.
 - **`kode_display`** dibuat oleh trigger database (`BPK-{tahun}-{seq}`) bila tidak dikirim eksplisit — objek ini hanya boleh diubah lewat migrasi manual.
 - **`activities` append-only**; komentar tidak masuk tabel ini.
 - **Role aplikasi**: `users.role` adalah sumber kebenaran; `INITIAL_ADMIN_EMAILS` hanya berpengaruh saat baris user pertama dibuat.
@@ -53,7 +53,7 @@ src/features/findings/utils/  formatRupiah (string) dst.
 
 | Modul | Isi |
 | --- | --- |
-| `src/features/findings/api/actions.ts` | Server actions tulis: `createFinding`, `updateFinding`, `softDeleteFinding`, `restoreFinding` (admin), `createComment`, `deleteComment`, `uploadAttachment`, `deleteAttachment`, `importFindingsXlsx`. Semua memanggil `requireRole()` lalu menulis dalam transaksi + mencatat `activities`. |
+| `src/features/findings/api/actions.ts` | Server actions: `updateFindingValue` (admin-only, satu-satunya kolom temuan yang dapat diubah), `createComment`/`deleteComment`, `replyToComment` (admin-only), serta upload/hapus lampiran. Semua memvalidasi role server-side; perubahan nilai dan lampiran dicatat pada `activities`. |
 | `src/features/findings/api/import-core.ts` | Inti transaksi impor (`applyImport`) — dipisah supaya bisa diuji integrasi tanpa Clerk. Hanya 6 kolom resmi SILAHAP yang ditimpa; baris cocok selalu diperbarui `last_seen_in_import_at` + `last_import_batch_id`. |
 | `src/features/findings/api/mutations.ts` | `mutationOptions` sisi klien (invalidate `findingKeys.all`). |
 | `src/features/access/**` | Halaman **Akses & Peran** (`/dashboard/access`, admin-only) untuk mengubah role pengguna; perubahan dicatat sebagai `Perbarui Peran Pengguna`. |
@@ -66,7 +66,7 @@ storage/imports/{batchId}.xlsx
 storage/attachments/{findingId}/{uuid}.{ext}   # metadata saja di DB
 ```
 
-Aturan yang diuji: impor idempotent, kolom internal (`unit_kerja`, komentar, lampiran) tidak pernah tertimpa, diff `status`/`nilai_temuan` tercatat di `activities`, dan baris gagal diisolasi oleh savepoint sehingga sisa berkas tetap masuk.
+Aturan akses komentar diuji melalui helper visibility: admin melihat semua komentar, user hanya komentar dengan local user id atau email author yang sama. Tanggapan admin disimpan pada komentar terkait dan ikut terbatas pada viewer yang sama. Test impor lama tetap dipertahankan untuk menguji utility/core data source, tetapi mutation impor tidak lagi diekspos ke UI/server admin value-only.
 
 ## Testing
 

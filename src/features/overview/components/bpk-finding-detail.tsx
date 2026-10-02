@@ -23,10 +23,11 @@ import {
   createCommentMutation,
   deleteAttachmentMutation,
   deleteCommentMutation,
+  replyToCommentMutation,
   uploadAttachmentMutation
 } from '@/features/findings/api/mutations';
 import { findingDetailOptions } from '@/features/findings/api/queries';
-import type { Activity, FindingAttachment } from '@/features/findings/api/types';
+import type { Activity, FindingAttachment, FindingComment } from '@/features/findings/api/types';
 import {
   formatDate,
   formatDateTime,
@@ -177,6 +178,48 @@ function ActivityItem({ activity }: { activity: Activity }) {
       </div>
       <span className='text-muted-foreground truncate text-xs'>{activity.actorEmail}</span>
     </li>
+  );
+}
+
+function AdminReplyBox({ comment }: { comment: FindingComment }) {
+  const [body, setBody] = React.useState(comment.adminReply ?? '');
+  const mutation = useMutation({
+    ...replyToCommentMutation,
+    onSuccess: () => toast.success('Tanggapan admin disimpan.'),
+    onError: (error) => toast.error(toUserMessage(error))
+  });
+
+  return (
+    <div className='bg-muted/40 mt-3 rounded-lg border-l-2 px-3 py-3'>
+      <div className='flex items-center justify-between gap-2'>
+        <span className='text-xs font-semibold'>
+          {comment.adminReply ? 'Tanggapan Admin' : 'Tanggapi Komentar'}
+        </span>
+        {comment.adminReply && comment.adminReplyByEmail && (
+          <span className='text-muted-foreground text-xs'>{comment.adminReplyByEmail}</span>
+        )}
+      </div>
+      <Textarea
+        value={body}
+        onChange={(event) => setBody(event.target.value)}
+        placeholder='Tulis tanggapan resmi dari admin…'
+        aria-label={`Tanggapan admin untuk komentar ${comment.id}`}
+        rows={2}
+        className='mt-2 bg-background'
+      />
+      <div className='mt-2 flex justify-end'>
+        <LoadingButton
+          size='sm'
+          variant='outline'
+          loading={mutation.isPending}
+          disabled={mutation.isPending || body.trim().length === 0}
+          onClick={() => mutation.mutate({ commentId: comment.id, body })}
+        >
+          <Icons.send className='size-4' />
+          Simpan Tanggapan
+        </LoadingButton>
+      </div>
+    </div>
   );
 }
 
@@ -371,6 +414,9 @@ export function BpkFindingDetail({
       <Card>
         <CardHeader>
           <CardTitle>Diskusi</CardTitle>
+          <p className='text-muted-foreground text-sm'>
+            Komentar hanya dapat dilihat oleh admin dan orang yang menulis komentar tersebut.
+          </p>
         </CardHeader>
         <CardContent className='flex flex-col gap-4'>
           {comments.length === 0 ? (
@@ -408,6 +454,25 @@ export function BpkFindingDetail({
                       )}
                     </div>
                     <p className='text-sm leading-relaxed'>{comment.body}</p>
+                    {comment.adminReply && !canManage && (
+                      <div className='bg-muted/40 mt-3 rounded-lg border-l-2 px-3 py-2'>
+                        <div className='flex items-center justify-between gap-2'>
+                          <span className='text-xs font-semibold'>Tanggapan Admin</span>
+                          {comment.adminReplyByEmail && (
+                            <span className='text-muted-foreground text-xs'>
+                              {comment.adminReplyByEmail}
+                            </span>
+                          )}
+                        </div>
+                        <p className='mt-1 text-sm leading-relaxed'>{comment.adminReply}</p>
+                        {comment.adminReplyAt && (
+                          <p className='text-muted-foreground mt-1 text-xs'>
+                            {formatDateTime(comment.adminReplyAt)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    {canManage && <AdminReplyBox comment={comment} />}
                   </div>
                 </li>
               ))}

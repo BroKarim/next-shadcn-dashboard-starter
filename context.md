@@ -12,10 +12,11 @@ Fokus tahap pertama hanya BPK. KAP/Management Letter belum masuk scope UI awal.
 - Kolom utama: ID, Status, Tahun, Kode Temuan, Kode Rekomendasi, Judul Pemeriksaan, Nilai Temuan, dan Aksi.
 - Identitas pencocokan impor: `NoSatker + Tahun + Kode Temuan + Kode Rekomendasi`.
 - Aplikasi ini hanya dipakai internal, jadi hanya ada dua peran: `admin` dan `user`.
-- Admin dapat melakukan segalanya: mengunggah XLSX, menambah/memperbarui/menghapus temuan, mengunggah berkas, mengatur pengguna, dan mengubah data operasional seperti Unit Kerja dan catatan.
-- User biasa dapat membaca seluruh data dan menulis komentar pada Diskusi; aksi pengelolaan data (temuan, impor, lampiran) hanya untuk admin. Penulis boleh menghapus komentarnya sendiri, admin boleh menghapus komentar siapa pun.
-- Perubahan admin/user dan aktivitas penting dicatat pada timeline dengan tanggal dan email pelaku. Aktivitas komentar tidak dimasukkan ke timeline aktivitas admin.
-- Jika impor XLSX menemukan identitas yang sama, kolom resmi SILAHAP yang berubah diperbarui: Status Tindak Lanjut, Alasan Ditolak, Deskripsi Tindak Lanjut, Tanggal Tindak Lanjut, Tanggal Terakhir Update, dan Nilai Temuan. Data internal seperti komentar, lampiran, dan catatan tidak boleh hilang.
+- Admin hanya dapat mengubah kolom `Nilai Temuan` pada data temuan. Field temuan lain bersifat baca-saja; pengelolaan lampiran dan pengguna tetap merupakan resource terpisah.
+- User biasa dapat membaca seluruh data dan menulis komentar pada Diskusi; komentar hanya terlihat oleh admin dan penulis komentar. Penulis boleh menghapus komentarnya sendiri, admin boleh menghapus komentar siapa pun.
+- Admin dapat menulis satu tanggapan pada setiap komentar; tanggapan tersebut hanya terlihat oleh admin dan penulis komentar terkait.
+- Perubahan admin/user dan aktivitas penting dicatat pada timeline dengan tanggal dan email pelaku. Aktivitas komentar dan tanggapan tidak dimasukkan ke timeline aktivitas admin.
+- Pembaruan nilai temuan oleh admin dicatat pada timeline dengan diff nilai sebelum dan sesudahnya. Impor multi-kolom tidak tersedia dari UI admin agar field selain `Nilai Temuan` tidak berubah.
 - Nilai Temuan selalu numerik, sehingga tidak membutuhkan AI untuk ekstraksi nominal.
 - Deadline/overdue belum masuk tahap awal.
 
@@ -31,11 +32,11 @@ Fokus tahap pertama hanya BPK. KAP/Management Letter belum masuk scope UI awal.
   - Belum Sesuai
   - Belum Ditindaklanjuti
 - Grafik batang Temuan per Tahun.
-- Panel Aktivitas Admin di samping grafik dengan proporsi sekitar 1:3; berbentuk list berisi tanggal, email, dan aksi admin seperti impor XLSX, tambah temuan, update temuan, hapus, dan unggah berkas. Komentar tidak ditampilkan di panel ini. Jika item banyak, panel dapat di-scroll dengan scrollbar disembunyikan; belum perlu tombol `Lihat semua`.
+- Panel Aktivitas Admin di samping grafik dengan proporsi sekitar 1:3; berbentuk list berisi tanggal, email, dan aksi admin seperti pembaruan Nilai Temuan dan unggah berkas. Komentar/tanggapan tidak ditampilkan di panel ini. Jika item banyak, panel dapat di-scroll dengan scrollbar disembunyikan; belum perlu tombol `Lihat semua`.
 - Filter di atas tabel: ID/kode, Status, Tahun, Kode Temuan, Kode Rekomendasi, dan Judul Pemeriksaan.
 - Tabel temuan dengan tombol Detail dan 10 baris per halaman memakai stack data table yang sudah ada.
 - Pada tahap dummy, filter dan pagination harus benar-benar berfungsi memakai TanStack Table dan pola state yang sudah ada.
-- Tombol `Tambah Temuan` dan `Impor XLSX` membutuhkan login serta permission aksi; login saja tidak otomatis memberi hak aksi.
+- Pada halaman daftar, admin hanya mendapatkan aksi `Edit Nilai Temuan`; user hanya dapat membaca data.
 - Temuan diurutkan default berdasarkan prioritas status, kemudian pembaruan paling lama.
 
 ### Drawer ringkasan
@@ -49,7 +50,7 @@ Satu halaman panjang tanpa tab, dengan urutan:
 1. Ringkasan temuan dan tombol edit.
 2. Informasi pemeriksaan: judul, uraian temuan, uraian rekomendasi, deskripsi tindak lanjut.
 3. Dokumen pendukung: upload, daftar file, dan lihat/preview PDF.
-4. Diskusi: daftar komentar dan composer untuk semua pengguna yang login.
+4. Diskusi: setiap user login dapat menulis komentar; daftar komentar difilter sehingga hanya admin dan penulis terkait yang dapat melihatnya, serta admin dapat memberi tanggapan.
 5. Riwayat aktivitas: perubahan data resmi/internal, impor, tambah, hapus, dan upload berkas dengan tanggal serta email.
 
 ## Prinsip Implementasi UI

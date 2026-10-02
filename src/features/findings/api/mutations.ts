@@ -3,17 +3,12 @@
 import { mutationOptions } from '@tanstack/react-query';
 
 import { getQueryClient } from '@/lib/query-client';
-import type { FindingFormValues } from '../schemas/finding';
 import {
-  checkImportFileHash,
   createComment,
-  createFinding,
   deleteAttachment,
   deleteComment,
-  importFindingsXlsx,
-  restoreFinding,
-  softDeleteFinding,
-  updateFinding,
+  replyToComment,
+  updateFindingValue,
   uploadAttachment
 } from './actions';
 import { findingKeys } from './queries';
@@ -32,35 +27,10 @@ const invalidateFindings = () => {
   getQueryClient().invalidateQueries({ queryKey: findingKeys.all });
 };
 
-export const createFindingMutation = mutationOptions({
-  mutationFn: (values: FindingFormValues) => createFinding(values),
+export const updateFindingValueMutation = mutationOptions({
+  mutationFn: ({ kodeDisplay, nilaiTemuan }: { kodeDisplay: string; nilaiTemuan: number }) =>
+    updateFindingValue(kodeDisplay, nilaiTemuan),
   onSettled: invalidateFindings
-});
-
-export const updateFindingMutation = mutationOptions({
-  mutationFn: ({ kodeDisplay, values }: { kodeDisplay: string; values: FindingFormValues }) =>
-    updateFinding(kodeDisplay, values),
-  onSettled: invalidateFindings
-});
-
-export const softDeleteFindingMutation = mutationOptions({
-  mutationFn: (kodeDisplay: string) => softDeleteFinding(kodeDisplay),
-  onSettled: invalidateFindings
-});
-
-export const restoreFindingMutation = mutationOptions({
-  mutationFn: (kodeDisplay: string) => restoreFinding(kodeDisplay),
-  onSettled: invalidateFindings
-});
-
-export const importFindingsXlsxMutation = mutationOptions({
-  mutationFn: (formData: FormData) => importFindingsXlsx(formData),
-  onSettled: invalidateFindings
-});
-
-/** Duplicate-file preflight: read-only, never invalidates anything. */
-export const checkImportFileHashMutation = mutationOptions({
-  mutationFn: (fileHash: string) => checkImportFileHash(fileHash)
 });
 
 export const createCommentMutation = mutationOptions({
@@ -71,6 +41,12 @@ export const createCommentMutation = mutationOptions({
 
 export const deleteCommentMutation = mutationOptions({
   mutationFn: (commentId: string) => deleteComment(commentId),
+  onSettled: invalidateFindings
+});
+
+export const replyToCommentMutation = mutationOptions({
+  mutationFn: ({ commentId, body }: { commentId: string; body: string }) =>
+    replyToComment(commentId, body),
   onSettled: invalidateFindings
 });
 

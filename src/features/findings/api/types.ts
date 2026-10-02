@@ -165,6 +165,9 @@ export interface FindingComment {
   authorEmail: string;
   body: string;
   createdAt: string;
+  adminReply: string | null;
+  adminReplyAt: string | null;
+  adminReplyByEmail: string | null;
 }
 
 export interface FindingAttachment {

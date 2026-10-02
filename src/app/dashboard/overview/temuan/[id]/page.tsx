@@ -60,9 +60,9 @@ export default async function TemuanDetailPage({ params }: PageProps) {
             <Button
               variant='outline'
               disabled
-              title='Aksi pengelolaan temuan memerlukan hak akses admin.'
+              title='Perubahan hanya tersedia untuk kolom Nilai Temuan.'
             >
-              Edit Temuan
+              Edit Nilai Temuan
             </Button>
           )}
         </div>

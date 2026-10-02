@@ -50,7 +50,7 @@ export function BpkOverview({ appRole }: { appRole: AppRole }) {
         )}
       </div>
 
-      <BpkFindingsTable canManage={isAdmin} canRestore={isAdmin} />
+      <BpkFindingsTable canEditValue={isAdmin} />
     </div>
   );
 }

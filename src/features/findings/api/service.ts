@@ -18,7 +18,12 @@ import { and, asc, count, desc, eq, ilike, isNull, or, sql, type SQL } from 'dri
 import { db } from '@/db/client';
 import { activities, attachments, comments, findings } from '@/db/schema';
 import { NotFoundError, ValidationError } from '@/lib/errors';
-import { requireAuth, requireRole } from '@/lib/rbac';
+import {
+  getAppRoleWithBootstrap,
+  requireActorIdentity,
+  requireAuth,
+  requireRole
+} from '@/lib/rbac';
 import {
   STATUS_PRIORITY,
   toFindingSort,
@@ -121,7 +126,10 @@ function toCommentDTO(row: CommentRow): FindingComment {
     authorName: row.authorName,
     authorEmail: row.authorEmail,
     body: row.body,
-    createdAt: row.createdAt.toISOString()
+    createdAt: row.createdAt.toISOString(),
+    adminReply: row.adminReply,
+    adminReplyAt: row.adminReplyAt?.toISOString() ?? null,
+    adminReplyByEmail: row.adminReplyByEmail
   };
 }
 
@@ -388,7 +396,10 @@ export async function listFindingActivities(
 }
 
 export async function getFindingDetail(id: string): Promise<FindingDetail> {
-  await requireAuth();
+  // Bootstrap an allowlisted first admin before creating a local actor row;
+  // otherwise a first detail request could race and create that admin as user.
+  const role = await getAppRoleWithBootstrap();
+  const actor = await requireActorIdentity();
 
   if (!id) {
     throw new ValidationError('id temuan wajib diisi.');
@@ -412,7 +423,14 @@ export async function getFindingDetail(id: string): Promise<FindingDetail> {
     db
       .select()
       .from(comments)
-      .where(eq(comments.findingId, row.id))
+      .where(
+        role === 'admin'
+          ? eq(comments.findingId, row.id)
+          : and(
+              eq(comments.findingId, row.id),
+              or(eq(comments.authorUserId, actor.id), eq(comments.authorEmail, actor.email))
+            )
+      )
       .orderBy(asc(comments.createdAt)),
     db
       .select()

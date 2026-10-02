@@ -8,7 +8,7 @@ import type { Finding } from '@/features/findings/api/types';
 import { FindingFormSheet } from './finding-form-sheet';
 
 /**
- * Header actions on the finding detail page: edit sheet plus soft delete.
+ * Header action on the finding detail page: edit the value-only field sheet.
  * A client component so the sheet state stays local to the header.
  */
 export function FindingDetailActions({ finding }: { finding: Finding }) {
@@ -18,7 +18,7 @@ export function FindingDetailActions({ finding }: { finding: Finding }) {
     <>
       <Button variant='outline' onClick={() => setFormOpen(true)}>
         <Icons.edit className='size-4' />
-        Edit Temuan
+        Edit Nilai Temuan
       </Button>
       <FindingFormSheet finding={finding} open={formOpen} onOpenChange={setFormOpen} />
     </>

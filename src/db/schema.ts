@@ -144,8 +144,9 @@ export const findings = pgTable(
 
 /**
  * Append-only activity log (D13). The application never UPDATEs or DELETEs
- * rows here. Comments are deliberately excluded from this table (D14) — the
- * detail page keeps separate Diskusi and Riwayat Aktivitas sections.
+ * rows here. Comments and admin replies are deliberately excluded from this
+ * table (D14) — the detail page keeps separate Diskusi and Riwayat Aktivitas
+ * sections.
  */
 export const activities = pgTable(
   'activities',
@@ -180,6 +181,11 @@ export const activities = pgTable(
   ]
 );
 
+/**
+ * Private discussion rows. Visibility is enforced in the detail service: an
+ * admin sees all comments, while a user sees only their own comment and its
+ * admin response.
+ */
 export const comments = pgTable(
   'comments',
   {
@@ -193,6 +199,12 @@ export const comments = pgTable(
     authorEmail: text('author_email').notNull(),
     authorName: text('author_name'),
     body: text('body').notNull(),
+    adminReply: text('admin_reply'),
+    adminReplyAt: timestamp('admin_reply_at', { withTimezone: true }),
+    adminReplyByUserId: uuid('admin_reply_by_user_id').references(() => users.id, {
+      onDelete: 'set null'
+    }),
+    adminReplyByEmail: text('admin_reply_by_email'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true })
       .notNull()
