@@ -25,9 +25,8 @@ import { diffFields, hasChanges, type FieldDiff } from '../utils/diff';
 import { resolveFile } from '../utils/file-type';
 import { applyImport, type ImportSummary } from './import-core';
 
-/** Attachment and import upload limit for document-heavy workflows: 50 MB. */
-const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
-const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+/** Keep uploads below Vercel's 4.5 MB Function request limit. */
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
 
 interface Actor {
   /** Local `users.id` (uuid) — FK columns reference this, not the Clerk id. */
@@ -117,8 +116,8 @@ export async function importFindings(formData: FormData): Promise<ImportSummary>
   if (!(file instanceof File)) {
     throw new ValidationError('Berkas XLSX wajib dipilih.');
   }
-  if (file.size > MAX_IMPORT_BYTES) {
-    throw new ValidationError('Ukuran berkas XLSX melebihi 50 MB.');
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new ValidationError('Ukuran berkas XLSX melebihi 4 MB.');
   }
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
     throw new ValidationError('Format impor harus berupa berkas XLSX.');
@@ -243,8 +242,8 @@ export async function uploadAttachment(
   if (!(file instanceof File)) {
     throw new ValidationError('Berkas wajib dipilih.');
   }
-  if (file.size > MAX_ATTACHMENT_BYTES) {
-    throw new ValidationError('Ukuran berkas melebihi 50 MB.');
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new ValidationError('Ukuran berkas melebihi 4 MB.');
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());

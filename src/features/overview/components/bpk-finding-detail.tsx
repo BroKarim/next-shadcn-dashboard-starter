@@ -101,7 +101,7 @@ function AttachmentPreview({ attachment }: { attachment: FindingAttachment | nul
           </EmptyMedia>
           <EmptyTitle>Belum ada berkas</EmptyTitle>
           <EmptyDescription>
-            Unggah dokumen pendukung (PDF, XLSX, DOCX, atau gambar, maks 50 MB).
+            Unggah dokumen pendukung (PDF, XLSX, DOCX, atau gambar, maks 4 MB untuk demo Vercel).
           </EmptyDescription>
         </EmptyHeader>
       </Empty>
