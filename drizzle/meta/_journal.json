@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1790580488610,
+      "tag": "0000_smooth_miek",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790580522558,
+      "tag": "0001_parallel_tinkerer",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790736390053,
+      "tag": "0002_tearful_triathlon",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790904546915,
+      "tag": "0003_next_the_watchers",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790905627616,
+      "tag": "0004_loving_wilson_fisk",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790908638277,
+      "tag": "0005_add_user_names",
+      "breakpoints": true
+    }
+  ]
+}

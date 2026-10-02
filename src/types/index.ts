@@ -1,11 +1,15 @@
 import { Icons } from '@/components/icons';
 
+/**
+ * Application role for this internal app: `user` may read everything and write
+ * comments; `admin` manages users, finding values, attachments, roles, and
+ * comment replies.
+ */
+export type AppRole = 'user' | 'admin';
+
+/** Minimum application role required to see a navigation item. */
 export interface PermissionCheck {
-  permission?: string;
-  plan?: string;
-  feature?: string;
-  role?: string;
-  requireOrg?: boolean;
+  role?: AppRole;
 }
 
 export interface NavItem {

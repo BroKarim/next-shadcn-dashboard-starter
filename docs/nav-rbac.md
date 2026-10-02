@@ -1,179 +1,72 @@
-# Simplified Navigation RBAC System
+# Navigation Access Control (Application Roles)
 
 ## Overview
 
-This document explains the fully client-side RBAC (Role-Based Access Control) system for navigation items.
+Navigation visibility is filtered client-side by **application role**. One institution, one tenant — there are no Clerk Organizations involved.
 
-**Key Insight**: Navigation visibility is UX only, not security. We can check everything client-side using Clerk's hooks!
+**Visibility is UX only, never security.** Anything that changes state must be re-authorized server-side (server action / route handler).
 
-## Architecture
+## Roles
 
-### Core Files
+| Role     | Meaning                             |
+| -------- | ----------------------------------- |
+| `user`   | Read-only (default for every user)  |
+| `admin`  | Full access, including user/role management |
 
-1. **`src/hooks/use-nav.ts`** - Single hook that handles all filtering logic (fully client-side)
-2. **`src/types/index.ts`** - Type definitions with `access` property
+Roles live in the local `users` table of the PostgreSQL database — the database is the source of truth, not Clerk metadata (task_plan.md D15):
 
-### Why Client-Side?
+| Column          | Notes                                            |
+| --------------- | ------------------------------------------------ |
+| `clerk_user_id` | Keys the row against the signed-in Clerk user    |
+| `role`          | `user` \| `admin`, default `user`    |
 
-- **Navigation visibility is UX only** - Users can't bypass security by seeing/hiding nav items
-- **Clerk provides all data client-side** - `useOrganization()` gives us `membership.permissions` and `membership.role`
-- **Zero server calls** - Instant filtering, no loading states, no UI flashing
-- **Better performance** - No network latency, no async complexity
+- The row is created lazily by `ensureCurrentUser()` (`src/lib/rbac.ts`) the first time the user performs a mutation; an existing role is never rewritten there.
+- `INITIAL_ADMIN_EMAILS` (comma-separated) elevates a user to `admin` only when their row is first created. As a bootstrap exception, the dashboard layout may create the row on first visit for allowlisted emails so the first admin never appears as `user`.
+- Only a protected, admin-gated server action (Phase 5) may change a role; a user must never be able to set their own role.
 
-**Note**: For actual security (API routes, server actions, page protection), always use server-side checks.
+## Files
 
-## Performance Characteristics
-
-### All Checks Are Synchronous
-
-✅ **requireOrg**: Client-side check using `useOrganization()`  
-✅ **permission**: Client-side check using `membership.permissions` array  
-✅ **role**: Client-side check using `membership.role`  
-⚠️ **plan/feature**: Requires server-side check (see below)
-
-### Zero Server Calls
-
-- All navigation filtering happens synchronously
-- No loading states
-- No UI flashing
-- Instant results
+1. `src/lib/rbac.ts` — `requireAuth()`, `requireRole()`, `getAppRoleWithBootstrap()` (server-side, security boundary)
+2. `src/hooks/use-nav.ts` — filters nav items using the `appRole` passed from the dashboard server layout (client-side, instant)
+2. `src/types/index.ts` — `AppRole` and `PermissionCheck`
+3. `src/config/nav-config.ts` — per-item `access` declarations
 
 ## Usage
 
-### In `nav-config.ts`
-
 ```typescript
+// src/config/nav-config.ts
 {
-  title: 'Teams',
-  url: '/dashboard/workspaces/team',
-  icon: 'userPen',
-  // Simple: requireOrg (client-side check, instant)
-  access: { requireOrg: true }
-}
-
-{
-  title: 'Admin Panel',
-  url: '/dashboard/admin',
-  icon: 'settings',
-  // All client-side checks - instant!
-  access: {
-    requireOrg: true,
-    permission: 'org:admin:manage',  // Client-side from membership.permissions
-    role: 'admin'  // Client-side from membership.role
+  title: 'Akses & Peran',
+  url: '/dashboard/access',
+  icon: 'account',
+  access: { role: 'admin' } // minimum role
 }
 ```
 
-### In Components
+`access.role` is a **minimum**: an `admin` sees items that require `user`. Omit `access` for items everyone should see.
 
-```typescript
-import { useFilteredNavItems } from '@/hooks/use-nav';
+```tsx
+// any client component
+import { useFilteredNavGroups } from '@/hooks/use-nav';
+import { navGroups } from '@/config/nav-config';
 
-function MyComponent() {
-  const filteredItems = useFilteredNavItems(navItems);
-  // filteredItems is automatically filtered based on RBAC
-}
+const groups = useFilteredNavGroups(navGroups);
 ```
 
-### Plan/Feature Checks
+## Server-side enforcement
 
-Plans and features require Clerk's `has()` function which is server-side only. Options:
+Never rely on the nav hiding an item. Authorize every mutation:
 
-1. **Store in organization metadata** (recommended for navigation):
+```ts
+import { requireRole } from '@/lib/rbac';
 
-   ```typescript
-   // In your organization setup
-   organization.publicMetadata.plan = 'pro';
-
-   // In nav-config.ts
-   access: {
-     requireOrg: true,
-     // Check metadata instead of plan
-   }
-   ```
-
-2. **Show item, protect at page level** (current approach):
-   - Navigation item is shown
-   - Page component checks server-side and redirects/shows error if needed
-
-3. **Use server action** (if you really need it):
-   - Only for navigation items that absolutely need plan/feature checks
-   - Most navigation items won't need this
-
-## Scalability
-
-### Adding New Items
-
-Just add to `nav-config.ts`:
-
-```typescript
-{
-  title: 'New Feature',
-  url: '/dashboard/new',
-  icon: 'star',
-  access: { plan: 'pro' }  // That's it!
-}
+await requireRole('admin'); // throws ForbiddenError when the role is insufficient
 ```
 
-The system automatically:
+Roles come from the local `users.role` column, resolved by `src/lib/rbac.ts` —
+never from Clerk `publicMetadata`. See `AGENTS.md` → "Authentication Patterns".
 
-- Filters it in sidebar
-- Filters it in kbar
-- Handles async checks if needed
-- Handles sync checks immediately
+## Adding a new item
 
-### Adding New Access Types
-
-1. Add to `PermissionCheck` interface in `src/app/actions/rbac.ts`
-2. Add check logic in `checkAccess()` function
-3. Update `use-nav.ts` to handle the new type
-
-## Comparison: Before vs After
-
-### Before (Overcomplicated)
-
-- 4 files with complex logic
-- Multiple hooks and utilities
-- Unclear data flow
-- Potential for bugs
-
-### After (Simplified)
-
-- 1 main hook file
-- Clear, linear logic
-- Easy to understand
-- Easy to maintain
-
-## Best Practices
-
-1. **Use `requireOrg: true` for simple cases** - It's instant and requires no server call
-2. **Combine checks when possible** - `{ requireOrg: true, permission: '...' }` is more efficient than separate checks
-3. **Avoid unnecessary checks** - Don't add `access` if the item should always be visible
-
-## Migration from Old System
-
-The old `visible` function still works for backward compatibility:
-
-```typescript
-// Old way (still works)
-visible: (context) => !!context?.organization;
-
-// New way (recommended)
-access: {
-  requireOrg: true;
-}
-```
-
-## Future Improvements
-
-Potential optimizations if needed:
-
-1. Cache permission checks (e.g., React Query)
-2. Prefetch permissions on app load
-3. Optimistic UI updates
-
-But for now, the current implementation is:
-
-- ✅ Simple
-- ✅ Fast
-- ✅ Scalable
-- ✅ Maintainable
+1. Add the item to `src/config/nav-config.ts` (with `access.role` when restricted)
+2. Guard the page/route and its server actions with the same role check

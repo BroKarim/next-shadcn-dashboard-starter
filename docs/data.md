@@ -1,0 +1,81 @@
+# Data Layer — PostgreSQL + Drizzle
+
+Referensi teknis untuk lapisan data dashboard Temuan BPK. Spesifikasi lengkap:
+`task_plan.md → Implementation Brief — Infrastruktur Data`.
+
+## Setup
+
+1. PostgreSQL lokal berjalan di `localhost:5432` (dev ini memakai Homebrew `postgresql@17`).
+2. Buat database: `createdb -h localhost -U kiram keuangan` (sekali saja).
+3. Isi `.env.local` (tidak di-commit):
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/keuangan
+INITIAL_ADMIN_EMAILS=  # dipisah koma; hanya berlaku saat baris user pertama dibuat
+```
+
+## Perintah
+
+| Perintah | Fungsi |
+| --- | --- |
+| `bun run db:generate` | Generate SQL dari `src/db/schema.ts` ke `drizzle/` — review SQL-nya sebelum commit |
+| `bun run db:migrate` | Menerapkan semua migrasi (memuat `.env.local` via `dotenv` di `drizzle.config.ts`) |
+| `bun run db:seed` | Seed idempotent 22 temuan + aktivitas + komentar dari dataset dummy (`on conflict do nothing`) |
+| `bun run db:studio` | Drizzle Studio untuk melihat data |
+
+Tanpa `db:reset`. Untuk mulai dari nol: drop database `keuangan`, buat lagi, `db:migrate`, `db:seed`.
+
+## Struktur
+
+```
+drizzle.config.ts             Konfigurasi CLI (dotenv eksplisit, tanpa opsi `casing`)
+src/db/schema.ts              Enam tabel: users, import_batches, findings, activities, comments, attachments
+src/db/client.ts              Koneksi `postgres` + Drizzle, dijaga `server-only`
+src/db/seed.ts                Seed CLI (punya koneksi sendiri; `server-only` tidak berlaku di CLI bun)
+src/lib/rbac.ts               requireAuth / requireRole / getAppRoleWithBootstrap / ensureCurrentUser
+src/lib/errors.ts             Domain errors + toUserMessage untuk toast
+src/features/findings/api/    types → service (server actions) → queries (key factory + options)
+src/features/findings/utils/  formatRupiah (string) dst.
+```
+
+## Konvensi penting
+
+- **Nama kolom eksplisit** (`noSatker: text('no_satker')`); opsi `casing` Drizzle tidak dipakai.
+- **Uang = `numeric(18,2)`, DTO string** — dijumlahkan di SQL (`SUM`), tidak pernah dikonversi ke `number` di jalur data; diformat hanya saat render.
+- **Soft delete**: legacy `deleted_at` masih dipertahankan di schema/migrasi, tetapi tidak ada aksi UI/server yang mengekspos hapus atau restore temuan pada policy value-only saat ini.
+- **`kode_display`** dibuat oleh trigger database (`BPK-{tahun}-{seq}`) bila tidak dikirim eksplisit — objek ini hanya boleh diubah lewat migrasi manual.
+- **`activities` append-only**; komentar tidak masuk tabel ini.
+- **Role aplikasi**: `users.role` adalah sumber kebenaran; `INITIAL_ADMIN_EMAILS` hanya berpengaruh saat baris user pertama dibuat.
+- **Server actions** (`'use server'`) wajib memanggil `requireRole()` sebelum mutasi; return = data polos; error domain diterjemahkan `toUserMessage()`.
+- **Prefetch halaman** memakai `await Promise.all([...])` sebelum `dehydrate()` (deviasi disengaja dari pola `void` — lihat D32).
+
+## Mutations, impor, dan lampiran (Phase 5)
+
+| Modul | Isi |
+| --- | --- |
+| `src/features/findings/api/actions.ts` | Server actions: `updateFindingValue` (admin-only, satu-satunya kolom temuan yang dapat diubah), `createComment`/`deleteComment`, `replyToComment` (admin-only), serta upload/hapus lampiran. Semua memvalidasi role server-side; perubahan nilai dan lampiran dicatat pada `activities`. |
+| `src/features/findings/api/import-core.ts` | Inti transaksi impor (`applyImport`) — dipisah supaya bisa diuji integrasi tanpa Clerk. Hanya 6 kolom resmi SILAHAP yang ditimpa; baris cocok selalu diperbarui `last_seen_in_import_at` + `last_import_batch_id`. |
+| `src/features/findings/api/mutations.ts` | `mutationOptions` sisi klien (invalidate `findingKeys.all`). |
+| `src/features/access/**` | Halaman **Akses & Peran** (`/dashboard/access`, admin-only) untuk mengubah role pengguna; perubahan dicatat sebagai `Perbarui Peran Pengguna`. |
+| `src/features/users/api/service.ts` | Daftar user PostgreSQL dengan search/filter/pagination, aksi hapus user lokal admin-only, dan audit `Hapus Pengguna`; akun aktif sendiri tidak dapat dihapus. |
+| `src/app/api/attachments/[id]/route.ts` | Route handler terautentikasi untuk pratinjau/unduh lampiran; `401` bila belum login, `404` bila baris/berkas tidak ada. |
+
+Penyimpanan berkas (di luar `public/`, isi di-ignore git):
+
+```
+storage/imports/{batchId}.xlsx
+storage/attachments/{findingId}/{uuid}.{ext}   # metadata saja di DB
+```
+
+Aturan akses komentar diuji melalui helper visibility: admin melihat semua komentar, user hanya komentar dengan local user id atau email author yang sama. Tanggapan admin disimpan pada komentar terkait dan ikut terbatas pada viewer yang sama. Test impor lama tetap dipertahankan untuk menguji utility/core data source, tetapi mutation impor tidak lagi diekspos ke UI/server admin value-only.
+
+## Testing
+
+```bash
+bun run test        # = bun test --conditions=react-server
+```
+
+- `src/test-setup.ts` (preload via `bunfig.toml`) memuat `.env.local`, jadi test integrasi memakai PostgreSQL lokal yang sama.
+- Unit: `src/features/findings/utils/*.test.ts` (diff aktivitas, mapping impor, sniffing tipe berkas).
+- Integrasi: `src/features/findings/api/import-core.test.ts` — menjalankan transaksi impor sungguhan dan membersihkan seluruh datanya sendiri (satker `TSTIMP`, batch atas nama `test-importer@local`).
+- `--conditions=react-server` diperlukan agar `server-only` di `src/db/client.ts` menjadi no-op di luar Next.js.

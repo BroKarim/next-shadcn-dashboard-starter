@@ -1,17 +1,24 @@
 'use client';
 
+import * as React from 'react';
+import { useSuspenseQuery } from '@tanstack/react-query';
+import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
+
 import { DataTable } from '@/components/ui/table/data-table';
 import { DataTableToolbar } from '@/components/ui/table/data-table-toolbar';
 import { useDataTable } from '@/hooks/use-data-table';
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { parseAsInteger, parseAsString, useQueryStates } from 'nuqs';
 import { getSortingStateParser } from '@/lib/parsers';
+import type { AppRole } from '../../api/types';
 import { usersQueryOptions } from '../../api/queries';
-import { columns } from './columns';
+import { getUserColumns } from './columns';
 
-const columnIds = columns.map((c) => c.id).filter(Boolean) as string[];
+interface UsersTableProps {
+  currentUserId: string | null;
+}
 
-export function UsersTable() {
+export function UsersTable({ currentUserId }: UsersTableProps) {
+  const columns = React.useMemo(() => getUserColumns(currentUserId), [currentUserId]);
+  const columnIds = columns.map((column) => column.id).filter(Boolean) as string[];
   const [params] = useQueryStates({
     page: parseAsInteger.withDefault(1),
     perPage: parseAsInteger.withDefault(10),
@@ -22,26 +29,21 @@ export function UsersTable() {
 
   const filters = {
     page: params.page,
-    limit: params.perPage,
+    perPage: params.perPage,
     ...(params.name && { search: params.name }),
-    ...(params.role && { roles: params.role }),
+    ...(params.role === 'user' || params.role === 'admin' ? { role: params.role as AppRole } : {}),
     ...(params.sort.length > 0 && { sort: JSON.stringify(params.sort) })
   };
 
   const { data } = useSuspenseQuery(usersQueryOptions(filters));
-
-  const pageCount = Math.ceil(data.total_users / params.perPage);
-
-  const { table } = useDataTable({
-    data: data.users,
+  const table = useDataTable({
+    data: data.items,
     columns,
-    pageCount,
+    pageCount: data.pageCount,
     shallow: true,
     debounceMs: 500,
-    initialState: {
-      columnPinning: { right: ['actions'] }
-    }
-  });
+    initialState: { columnPinning: { right: ['actions'] } }
+  }).table;
 
   return (
     <DataTable table={table}>

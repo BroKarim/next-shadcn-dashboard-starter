@@ -1,0 +1,8 @@
+# Local Supabase CLI configuration.
+# The hosted project ref is supplied later with `supabase link --project-ref`.
+project_id = "keuangan"
+
+[db]
+# Keep local development aligned with the PostgreSQL version used by the
+# current application database. Hosted migrations still run through Drizzle.
+major_version = 17

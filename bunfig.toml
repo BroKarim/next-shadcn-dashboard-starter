@@ -14,3 +14,9 @@ minimumReleaseAge = 604800 # 7 days, in seconds
 
 # Package names exempt from the cooldown above.
 minimumReleaseAgeExcludes = []
+
+# Test runner: preload env from .env.local (integration tests hit the local
+# PostgreSQL) and resolve the `react-server` condition so `server-only`
+# modules can be imported outside Next.js.
+[test]
+preload = ["./src/test-setup.ts"]

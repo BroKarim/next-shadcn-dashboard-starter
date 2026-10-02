@@ -1,39 +1,48 @@
 'use client';
+
+import { useMutation } from '@tanstack/react-query';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import { Icons } from '@/components/icons';
 import { AlertModal } from '@/components/modal/alert-modal';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { deleteUserMutation } from '../../api/mutations';
+import { toUserMessage } from '@/lib/errors';
+import { deleteUserMutation, setUserRoleMutation } from '../../api/mutations';
 import type { User } from '../../api/types';
-import { Icons } from '@/components/icons';
-import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { UserFormSheet } from '../user-form-sheet';
 
 interface CellActionProps {
   data: User;
+  currentUserId: string | null;
 }
 
-export function CellAction({ data }: CellActionProps) {
+export function CellAction({ data, currentUserId }: CellActionProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
+  const isCurrentUser = currentUserId === data.id;
+
+  const roleMutation = useMutation({
+    ...setUserRoleMutation,
+    onSuccess: (result) => {
+      toast.success(result.updated ? 'Role pengguna diperbarui.' : 'Role tidak berubah.');
+    },
+    onError: (error) => toast.error(toUserMessage(error))
+  });
 
   const deleteMutation = useMutation({
     ...deleteUserMutation,
     onSuccess: () => {
-      toast.success('User deleted successfully');
+      toast.success('Pengguna dihapus dari aplikasi.');
       setDeleteOpen(false);
     },
-    onError: () => {
-      toast.error('Failed to delete user');
-    }
+    onError: (error) => toast.error(toUserMessage(error))
   });
 
   return (
@@ -44,22 +53,40 @@ export function CellAction({ data }: CellActionProps) {
         onConfirm={() => deleteMutation.mutate(data.id)}
         loading={deleteMutation.isPending}
       />
-      <UserFormSheet user={data} open={editOpen} onOpenChange={setEditOpen} />
       <DropdownMenu modal={false}>
         <DropdownMenuTrigger render={<Button variant='ghost' className='h-8 w-8 p-0' />}>
-          <span className='sr-only'>Open menu</span>
+          <span className='sr-only'>Buka menu pengguna</span>
           <Icons.ellipsis className='h-4 w-4' />
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end'>
           <DropdownMenuGroup>
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuLabel>Aksi</DropdownMenuLabel>
           </DropdownMenuGroup>
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setEditOpen(true)}>
-              <Icons.edit className='mr-2 h-4 w-4' /> Update
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setDeleteOpen(true)}>
-              <Icons.trash className='mr-2 h-4 w-4' /> Delete
+            {data.role !== 'admin' && (
+              <DropdownMenuItem
+                disabled={roleMutation.isPending}
+                onClick={() => roleMutation.mutate({ userId: data.id, role: 'admin' })}
+              >
+                <Icons.userPen className='mr-2 h-4 w-4' />
+                Jadikan Admin
+              </DropdownMenuItem>
+            )}
+            {data.role === 'admin' && !isCurrentUser && (
+              <DropdownMenuItem
+                disabled={roleMutation.isPending}
+                onClick={() => roleMutation.mutate({ userId: data.id, role: 'user' })}
+              >
+                <Icons.userPen className='mr-2 h-4 w-4' />
+                Ubah ke User
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              disabled={isCurrentUser || deleteMutation.isPending}
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Icons.trash className='mr-2 h-4 w-4 text-destructive' />
+              {isCurrentUser ? 'Akun aktif tidak dapat dihapus' : 'Hapus Pengguna'}
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>

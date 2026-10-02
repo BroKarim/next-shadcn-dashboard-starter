@@ -33,6 +33,7 @@ import {
   IconDotsVertical,
   IconEdit,
   IconExternalLink,
+  IconEye,
   IconEyeOff,
   IconFile,
   IconFileText,
@@ -74,6 +75,7 @@ import {
   IconStack2,
   IconStar,
   IconSun,
+  IconRestore,
   IconTrash,
   IconTrendingDown,
   IconTrendingUp,
@@ -112,6 +114,7 @@ export const Icons = {
   search: IconSearch,
   settings: IconSettings,
   trash: IconTrash,
+  restore: IconRestore,
 
   // Navigation / Chevrons
   chevronDown: IconChevronDown,
@@ -196,6 +199,7 @@ export const Icons = {
   // Data / Charts
   trendingDown: IconTrendingDown,
   trendingUp: IconTrendingUp,
+  eye: IconEye,
   eyeOff: IconEyeOff,
   adjustments: IconAdjustmentsHorizontal,
 

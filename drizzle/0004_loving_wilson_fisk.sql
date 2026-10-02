@@ -1,0 +1,2 @@
+ALTER TABLE "activities" DROP CONSTRAINT "activities_action_check";--> statement-breakpoint
+ALTER TABLE "activities" ADD CONSTRAINT "activities_action_check" CHECK ("activities"."action" in ('Impor XLSX', 'Tambah Temuan', 'Perbarui Temuan', 'Hapus Temuan', 'Pulihkan Temuan', 'Unggah Berkas', 'Perbarui Peran Pengguna', 'Hapus Pengguna'));

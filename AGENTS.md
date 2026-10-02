@@ -6,19 +6,18 @@ This file provides essential information for AI coding agents working on this pr
 
 ## Project Overview
 
-**Next.js Admin Dashboard Starter** is a production-ready admin dashboard template built with:
+**Dashboard Tindak Lanjut Temuan BPK USK** is an internal dashboard built on the Next.js 16 App Router with:
 
 - **Framework**: Next.js 16 (App Router)
 - **Language**: TypeScript 5.7
 - **Styling**: Tailwind CSS v4
-- **UI Components**: shadcn/ui (New York style)
-- **Authentication**: Clerk (with Organizations/Billing support)
-- **Error Tracking**: Sentry
+- **UI Components**: shadcn/ui (New York style, Base UI primitives)
+- **Authentication**: Clerk (single tenant, application roles)
 - **Charts**: Recharts
 - **Containerization**: Docker (Node.js & Bun Dockerfiles)
-- **Package Manager**: Bun (preferred) or npm
+- **Package Manager**: Bun (preferred)
 
-The project follows a feature-based folder structure designed for scalability in SaaS applications, internal tools, and admin panels.
+It grew out of the Next.js shadcn dashboard starter; the template demo features (Sentry, AI chat, kanban, messaging, notification center, product catalogue, Clerk Organizations/Billing, command palette, extra themes) have been removed. Product scope and the phased plan live in `task_plan.md` and `context.md` at the repo root.
 
 ---
 
@@ -34,12 +33,11 @@ The project follows a feature-based folder structure designed for scalability in
 
 - Tailwind CSS v4 (using `@import 'tailwindcss'` syntax)
 - PostCSS with `@tailwindcss/postcss` plugin
-- shadcn/ui component library (Radix UI primitives)
+- shadcn/ui component library (Base UI primitives)
 - CSS custom properties for theming (OKLCH color format)
 
 ### State Management
 
-- Zustand 5.x for local UI state in the stateful demo features
 - Nuqs for URL search params state management
 - TanStack Form + Zod for form handling (`createFormHook` + shadcn `Field`-anatomy components)
 
@@ -47,16 +45,15 @@ The project follows a feature-based folder structure designed for scalability in
 
 - TanStack React Query for data fetching, caching, and mutations
 - Server-side prefetching with `HydrationBoundary` + `dehydrate`
-- Client-side `useQuery` + nuqs `shallow: true` for tables (no RSC round-trips on pagination/filter)
+- Client-side `useSuspenseQuery` + nuqs `shallow: true` for tables (no RSC round-trips on pagination/filter)
 - `useMutation` + `invalidateQueries` for form submissions
 - Query client singleton in `src/lib/query-client.ts`
 
 ### Authentication & Authorization
 
-- Clerk for authentication and user management
-- Clerk Organizations for multi-tenant workspaces
-- Clerk Billing for subscription management (B2B)
-- Client-side RBAC for navigation visibility
+- Clerk for authentication — single tenant (one institution), no Clerk Organizations or Billing
+- Application roles: `user` (read everything + write comments) and `admin` (manage users, update `nilaiTemuan`, manage attachments, and reply to comments) — stored in the local `users` table (`users.role`); the database is the source of truth, Clerk only provides identity
+- Roles must be enforced server-side (server action / route handler); client-side nav filtering is UX only — see `docs/nav-rbac.md`
 
 ### Data & APIs
 
@@ -65,13 +62,13 @@ The project follows a feature-based folder structure designed for scalability in
 - Recharts for analytics/charts
 - Service layer per feature (`api/types.ts` → `api/service.ts` → `api/queries.ts`)
 - Route handlers at `src/app/api/` (for Route Handler or BFF patterns)
-- Mock data in `src/constants/mock-api*.ts` (default, swap via service layer)
+- User data is sourced from the local PostgreSQL `users` table through `src/features/users/api/service.ts`; do not add mock user stores or import mock API data from components
 - API client utility in `src/lib/api-client.ts` (for fetch-based patterns)
 
 ### Development Tools
 
-- ESLint 8.x with Next.js core-web-vitals config
-- Prettier 3.x with prettier-plugin-tailwindcss
+- oxlint for linting (`.oxlintrc.json`)
+- oxfmt for formatting (`.oxfmtrc.json`)
 - Husky for git hooks
 - lint-staged for pre-commit formatting
 
@@ -82,60 +79,43 @@ The project follows a feature-based folder structure designed for scalability in
 ```
 /src
 ├── app/                    # Next.js App Router
-│   ├── auth/              # Authentication routes (sign-in, sign-up)
-│   ├── dashboard/         # Dashboard routes
-│   │   ├── overview/      # Parallel routes (@area_stats, @bar_stats, etc.)
-│   │   ├── product/       # Product management pages
-│   │   ├── kanban/        # Kanban board page
-│   │   ├── chat/          # Messaging page
-│   │   ├── ai-chat/       # AI chat streaming demo
-│   │   ├── notifications/ # Notifications page
-│   │   ├── workspaces/    # Organization management
-│   │   ├── billing/       # Subscription billing
-│   │   ├── exclusive/     # Pro plan feature example
-│   │   └── profile/       # User profile
-│   ├── api/               # API routes (if any)
+│   ├── dashboard/         # Protected dashboard shell (Clerk auth.protect())
+│   │   ├── overview/      # Dashboard Temuan BPK (KPI, chart, filter, drawer)
+│   │   ├── product/       # Product CRUD demo (React Query + nuqs)
+│   │   ├── users/         # User/role management (React Query + nuqs)
+│   │   └── profile/       # Clerk user profile
+│   ├── api/               # Route handlers (users)
+│   ├── sign-in/           # Clerk sign-in page
+│   ├── sign-up/           # Clerk sign-up page
 │   ├── layout.tsx         # Root layout with providers
-│   ├── page.tsx           # Landing page
+│   ├── page.tsx           # Redirects to dashboard (or sign-in)
 │   ├── global-error.tsx   # Global error boundary
 │   └── not-found.tsx      # 404 page
 │
 ├── components/
-│   ├── ui/                # shadcn/ui components (50+ components)
-│   ├── layout/            # Layout components (sidebar, header, etc.)
-│   ├── forms/             # Field components (shadcn TanStack Form anatomy) + demos
-│   ├── themes/            # Theme system components
-│   ├── kbar/              # Command+K search bar
+│   ├── ui/                # shadcn/ui components (Base UI primitives)
+│   ├── layout/            # Layout components (sidebar, header, providers)
+│   ├── forms/             # Field components (shadcn TanStack Form anatomy)
+│   ├── themes/            # Theme provider, selector + mode toggle
+│   ├── kbar/              # Cmd+K command palette
 │   ├── icons.tsx          # Icon registry
 │   └── ...
 │
 ├── features/              # Feature-based modules
-│   ├── auth/              # Authentication components
-│   ├── overview/          # Dashboard analytics
-│   ├── products/          # Product management (React Query + nuqs)
-│   │   ├── api/
-│   │   │   ├── types.ts   # Type contract (response shapes, filters, payloads)
-│   │   │   ├── service.ts # Data access layer (swap for your backend)
-│   │   │   └── queries.ts # React Query options + key factories
-│   │   ├── components/    # Listing, form, table components
-│   │   ├── schemas/       # Zod schemas
-│   │   └── constants/     # Filter options
+│   ├── overview/          # BPK finding dashboard (dummy data + pure helpers)
+│   ├── products/          # Product demo: api layer, table, form
 │   ├── users/             # User management (React Query + nuqs)
-│   │   ├── api/           # Same pattern: types.ts → service.ts → queries.ts
-│   │   └── components/    # Listing, table components
-│   ├── react-query-demo/  # React Query showcase (Pokemon API)
-│   ├── kanban/            # Kanban board with dnd-kit
-│   ├── chat/              # Messaging UI (conversations, bubbles, composer)
-│   ├── ai-chat/           # Scripted useChat streaming demo
-│   ├── notifications/     # Notification center & store
-│   └── profile/           # Profile management
+│   │   ├── api/           # types.ts → service.ts → queries.ts
+│   │   ├── components/    # Listing, table, form sheet
+│   │   └── schemas/       # Zod schemas
+│   └── profile/           # Clerk UserProfile wrapper
 │
 ├── config/                # Configuration files
 │   ├── nav-config.ts      # Navigation with RBAC
 │   └── ...
 │
 ├── hooks/                 # Custom React hooks
-│   ├── use-nav.ts         # RBAC navigation filtering
+│   ├── use-nav.ts         # Application-role nav filtering
 │   ├── use-data-table.ts  # Data table state
 │   └── ...
 │
@@ -153,13 +133,11 @@ The project follows a feature-based folder structure designed for scalability in
     └── themes/            # Individual theme files
 
 /docs                      # Documentation
-│   ├── clerk_setup.md     # Clerk configuration guide
-│   ├── nav-rbac.md        # Navigation RBAC documentation
-│   └── themes.md          # Theme customization guide
-
-/scripts                   # Dev tooling
-    ├── cleanup.js         # Feature removal, run via `bun run cleanup` (templates in cleanup-templates/, typechecked)
-    └── cleanup-templates/ # Replacement files cleanup.js copies into the repo
+│   ├── clerk_setup.md     # Clerk configuration guide (single tenant)
+│   ├── nav-rbac.md        # Navigation access control (application roles)
+│   ├── forms.md           # Form system guide
+│   ├── themes.md          # Theme customization guide
+│   └── deployment.md      # Deploy guide (Vercel, Docker)
 
 Dockerfile                 # Node.js production Dockerfile
 Dockerfile.bun             # Bun production Dockerfile
@@ -183,15 +161,15 @@ bun run build
 # Start production server
 bun run start
 
-# Linting
-bun run lint         # Run ESLint
-bun run lint:fix     # Fix ESLint issues and format
+# Linting (oxlint)
+bun run lint         # Run oxlint
+bun run lint:fix     # Fix issues and format
 bun run lint:strict  # Zero warnings tolerance
 
 bun run typecheck    # tsc --noEmit
 
-# Formatting
-bun run format       # Format with Prettier
+# Formatting (oxfmt)
+bun run format       # Format the repo
 bun run format:check # Check formatting
 
 # Git hooks
@@ -211,25 +189,13 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_...
 CLERK_SECRET_KEY=sk_...
 
 # Redirect URLs
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/auth/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/auth/sign-up"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard/overview"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard/overview"
+NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/dashboard/overview"
+NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/dashboard/overview"
 ```
 
-### Optional for Error Tracking (Sentry)
-
-```env
-NEXT_PUBLIC_SENTRY_DSN=https://...@....ingest.sentry.io/...
-NEXT_PUBLIC_SENTRY_ORG=your-org
-NEXT_PUBLIC_SENTRY_PROJECT=your-project
-SENTRY_AUTH_TOKEN=sntrys_...
-NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
-```
-
-**Note**: Clerk supports "keyless mode" — run `npx clerk@latest init` to provision a development instance in seconds (no account needed; keys are written to `.env.local`).
-
----
+Optional: `WEBHOOK_SECRET` (Clerk webhooks) and `BUILD_STANDALONE=true` when building the Docker images.
 
 ## Code Style Guidelines
 
@@ -240,25 +206,13 @@ NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
 - Prefer interface over type for object definitions
 - Use `@/*` alias for imports from src
 
-### Formatting (Prettier)
+### Formatting (oxfmt)
 
-```json
-{
-  "singleQuote": true,
-  "jsxSingleQuote": true,
-  "semi": true,
-  "trailingComma": "none",
-  "tabWidth": 2,
-  "arrowParens": "always"
-}
-```
+Configured in `.oxfmtrc.json`: single quotes, JSX single quotes, semicolons, no trailing comma, 2-space indent, LF.
 
-### ESLint Rules
+### Linting (oxlint)
 
-- `@typescript-eslint/no-unused-vars`: warn
-- `no-console`: warn
-- `react-hooks/exhaustive-deps`: warn
-- `import/no-unresolved`: off (handled by TypeScript)
+Configured in `.oxlintrc.json`. Notable rules: `no-console` warns (allows `warn`/`error`), unused vars warn (`_`-prefixed ignored), `react-hooks/exhaustive-deps` warn, plus the jsx-a11y set.
 
 ### Component Conventions
 
@@ -271,18 +225,18 @@ NEXT_PUBLIC_SENTRY_DISABLED="false"  # Set to "true" to disable in dev
 
 ## Theming System
 
-The project uses a sophisticated multi-theme system with 10 built-in themes:
+The project ships 10 built-in themes plus light/dark mode:
 
-- `vercel` (default)
-- `claude`
-- `discord`
-- `supabase`
-- `mono`
-- `notebook`
-- `light-green`
-- `zen`
-- `astro-vista`
-- `whatsapp`
+- `vercel` (default), `claude`, `discord`, `supabase`, `mono`, `notebook`, `light-green`, `zen`, `astro-vista`, `whatsapp`
+
+### Theme Files
+
+- CSS files: `src/styles/themes/{theme-name}.css` (`[data-theme='…']`, OKLCH tokens)
+- Theme registry: `src/components/themes/theme.config.ts` (`DEFAULT_THEME`, `THEMES`)
+- Fonts: `src/components/themes/font.config.ts` (`next/font` variables per theme)
+- Active theme provider: `src/components/themes/active-theme.tsx`
+- Theme selector: `src/components/themes/theme-selector.tsx` (header)
+- Light/dark toggle: `src/components/themes/theme-mode-toggle.tsx`
 
 ### Theme Files
 
@@ -322,24 +276,20 @@ export const navGroups: NavGroup[] = [
         icon: 'dashboard',
         shortcut: ['d', 'd'],
         items: [],
-        access: { requireOrg: true } // RBAC check
+        access: { role: 'admin' } // minimum application role
       }
     ]
   }
 ];
 ```
 
-### Access Control Properties
+### Access Control Property
 
-- `requireOrg: boolean` - Requires active organization
-- `permission: string` - Requires specific permission
-- `role: string` - Requires specific role
-- `plan: string` - Requires specific subscription plan
-- `feature: string` - Requires specific feature
+- `role: 'user' | 'admin'` — minimum application role required to see the item (`user` < `admin`)
 
 ### Client-Side Filtering
 
-The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation client-side using Clerk's `useOrganization()` and `useUser()` hooks. This is for UX only - actual security checks must happen server-side.
+The dashboard server layout resolves the role from the database (`getAppRoleWithBootstrap()` in `src/lib/rbac.ts`) and passes `appRole` down to `AppSidebar` and `KBar`; the filtering hooks in `src/hooks/use-nav.ts` use that value to hide items above the current role. This is UX only — actual security checks happen server-side via `requireRole()`.
 
 ---
 
@@ -347,39 +297,37 @@ The `useFilteredNavItems()` hook in `src/hooks/use-nav.ts` filters navigation cl
 
 ### Protected Routes
 
-Dashboard routes use Clerk's middleware pattern. Pages that require organization:
+The whole `/dashboard` segment is gated in `src/app/dashboard/layout.tsx`:
 
 ```tsx
-import { auth } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 
-export default async function Page() {
-  const { orgId } = await auth();
-  if (!orgId) redirect('/dashboard/workspaces');
-  // ...
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  // Redirects to the sign-in URL when signed out.
+  await auth.protect();
+  return <>{children}</>;
 }
 ```
 
-### Plan/Feature Protection
+### Role Checks (server-side)
 
-Use Clerk's `<Protect>` component for client-side:
+Application roles live in the `users.role` column of the local PostgreSQL database (`user` | `admin`). Clerk provides the identity only.
 
-```tsx
-import { Protect } from '@clerk/nextjs';
+The real implementation lives in `src/lib/rbac.ts` — use it, do not re-implement:
 
-<Protect plan='pro' fallback={<UpgradePrompt />}>
-  <PremiumContent />
-</Protect>;
+```ts
+import { requireRole, requireActorIdentity } from '@/lib/rbac';
+import type { AppRole } from '@/types';
+
+// Inside a server action that mutates data:
+await requireRole('admin' as AppRole); // throws ForbiddenError when insufficient
+const actor = await requireActorIdentity(); // { id: users.id, email, name } for actor snapshots / FK columns
 ```
 
-Use `has()` function for server-side checks:
-
-```tsx
-import { auth } from '@clerk/nextjs';
-
-const { has } = await auth();
-const hasFeature = has({ feature: 'premium_access' });
-```
+- `requireAuth()` → Clerk `userId` (`auth()` does not expose an email).
+- `ensureCurrentUser()` lazily creates the `users` row (role `user`, or `admin` for emails in `INITIAL_ADMIN_EMAILS`) and never rewrites an existing role.
+- `getAppRoleWithBootstrap()` is the read-side helper used by the dashboard layout.
+- Domain errors come from `src/lib/errors.ts`; translate them with `toUserMessage()` for toasts — never leak raw database errors to the UI.
 
 ---
 
@@ -394,9 +342,13 @@ src/features/<name>/api/
   types.ts      ← Type contract (response shapes, filters, payloads)
   service.ts    ← Data access functions (the ONE file to swap for your backend)
   queries.ts    ← React Query options + query key factories (stable, never changes)
+  mutations.ts  ← Client mutationOptions (invalidate keys) when the feature writes
+  actions.ts    ← 'use server' write actions (requireRole + transaction + activity log)
 ```
 
 **`service.ts` is the only file you modify when connecting to a real backend.** Queries and components import from it — they never change.
+
+Live example (findings feature, PostgreSQL + Drizzle): `src/features/findings/api/` — `service.ts` reads, `actions.ts` server actions, `import-core.ts` the testable transactional core, `queries.ts` + `mutations.ts` for React Query. See `docs/data.md`.
 
 #### Backend Patterns
 
@@ -501,47 +453,30 @@ Tables use TanStack Table with React Query:
 - Table component in `src/components/ui/table/data-table.tsx`
 - Column pinning via `initialState.columnPinning` in `useDataTable`
 
+Exception: the BPK overview table (`features/overview/components/bpk-overview.tsx`) has no backend yet, so it drives `useReactTable` directly from local dummy data (`bpk-overview-data.ts`, pure helpers) with controlled `columnFilters` and no React Query. Migrate it to the service/query layer when the finding API exists. Remember that TanStack's `filterFn: 'auto'` on a `number` column resolves to `inNumberRange` (`[min, max]` tuple) — number columns filtered by a `Select`/`Input` string need an explicit `filterFn`.
+
 ---
 
-## Error Handling & Monitoring
-
-### Sentry Integration
-
-Sentry is configured for both client and server:
-
-- Client config: `src/instrumentation-client.ts`
-- Server config: `src/instrumentation.ts`
-- Global error: `src/app/global-error.tsx`
-
-To disable Sentry in development:
-
-```env
-NEXT_PUBLIC_SENTRY_DISABLED="true"
-```
+## Error Handling
 
 ### Error Boundaries
 
-- `global-error.tsx` - Catches all errors, reports to Sentry
 - Parallel route `error.tsx` files for specific sections
 
 ---
 
 ## Testing Strategy
 
-**Note**: This project does not include a test suite by default. Consider adding:
+The project uses **Bun's built-in test runner** (`bun run test` → `bun test --conditions=react-server`):
 
-- **Unit tests**: Vitest or Jest for utilities and hooks
-- **Component tests**: React Testing Library for UI components
-- **E2E tests**: Playwright for critical user flows
+- `src/test-setup.ts` is preloaded via `bunfig.toml` and loads `.env.local`, so DB integration tests can run.
+- `--conditions=react-server` makes the `server-only` guard (used by `src/db/client.ts`) resolve to its no-op build outside Next.js.
+- Unit tests are colocated next to the code they cover (`*.test.ts`), e.g. `src/features/findings/utils/*.test.ts`.
+- `src/features/findings/api/import-core.test.ts` is an **integration test**: it runs the real import transaction against the local database and cleans up after itself (it needs `DATABASE_URL`).
 
-Recommended test locations:
+Prefer testing pure helpers (mapping, diffing, parsing, file sniffing) and the transactional core behind server actions; server actions themselves are thin auth wrappers.
 
-```
-/src
-  /__tests__           # Unit tests
-  /features/*/tests    # Feature tests
-/e2e                   # Playwright tests
-```
+Component/E2E coverage (React Testing Library, Playwright) is still open — recommended locations remain `/src/__tests__` and `/e2e`.
 
 ---
 
@@ -562,7 +497,6 @@ Ensure these are set in your deployment platform:
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
 - `CLERK_SECRET_KEY`
 - All `NEXT_PUBLIC_*` variables for client-side access
-- `SENTRY_*` variables if using error tracking
 
 ### Docker
 
@@ -576,43 +510,7 @@ Both use `output: 'standalone'` in `next.config.ts`. Pass `NEXT_PUBLIC_*` vars a
 ### Build Considerations
 
 - Output: `standalone` (optimized for Docker/self-hosting)
-- Images: Configured for `api.slingacademy.com`, `img.clerk.com`, `clerk.com`
-- Sentry source maps uploaded automatically in CI
-
----
-
-## Feature Cleanup System
-
-A single `scripts/cleanup.js` file handles removal of optional features:
-
-```bash
-# Interactive mode — prompts for each feature
-node scripts/cleanup.js --interactive
-
-# Remove specific features
-node scripts/cleanup.js clerk           # Remove auth/org/billing
-node scripts/cleanup.js kanban          # Remove kanban board
-node scripts/cleanup.js chat            # Remove messaging UI
-node scripts/cleanup.js ai-chat         # Remove AI chat demo
-node scripts/cleanup.js notifications   # Remove notification center
-node scripts/cleanup.js themes          # Keep one theme, remove rest
-node scripts/cleanup.js sentry          # Remove error tracking
-
-# Remove multiple at once
-node scripts/cleanup.js kanban chat notifications
-
-# Preview without changing files
-node scripts/cleanup.js --dry-run kanban
-
-# List all features
-node scripts/cleanup.js --list
-```
-
-**Safety**: Script requires git repository with at least one commit. Use `--force` to skip.
-
-Replacement files live in `scripts/cleanup-templates/` as real `.ts`/`.tsx` files typechecked by `tsc` and `next build`, so template rot fails loudly instead of shipping broken code.
-
-After cleanup, delete `scripts/cleanup.js` and `scripts/cleanup-templates/` — the dev server message auto-cleans on next start.
+- Images: configured for `img.clerk.com` and `clerk.com`
 
 ---
 
@@ -665,10 +563,6 @@ export const Icons = {
 | Theme           | `sun`, `moon`, `brightness`, `laptop`, `palette`                              |
 | Text formatting | `bold`, `italic`, `underline`, `text`                                         |
 | Data / Charts   | `trendingUp`, `trendingDown`, `eyeOff`, `adjustments`                         |
-
-### Icon Showcase Page
-
-Browse all available icons at `/dashboard/elements/icons` — a searchable grid of every icon in the registry.
 
 ### Why This Pattern?
 
@@ -731,8 +625,8 @@ See "Theming System" section above or `docs/themes.md`.
 
 **Navigation items not showing**
 
-- Check `access` property in nav config
-- Verify user has required org/permission/role
+- Check the item's `access.role` in `src/config/nav-config.ts`
+- Verify the signed-in user's `users.role` row in the database (roles are never read from Clerk metadata)
 
 ---
 
@@ -743,7 +637,6 @@ See "Theming System" section above or `docs/themes.md`.
 - [shadcn/ui](https://ui.shadcn.com/docs)
 - [Tailwind CSS v4](https://tailwindcss.com/docs)
 - [TanStack Table](https://tanstack.com/table/latest)
-- [Sentry Next.js](https://docs.sentry.io/platforms/javascript/guides/nextjs/)
 
 ---
 
