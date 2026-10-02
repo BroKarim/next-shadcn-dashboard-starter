@@ -12,6 +12,8 @@ export default defineConfig({
   schema: './src/db/schema.ts',
   out: './drizzle',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? ''
+    // Use Supabase's direct/session connection for DDL when provided. The
+    // transaction pooler remains the runtime default for the app.
+    url: process.env.DATABASE_URL_MIGRATION ?? process.env.DATABASE_URL ?? ''
   }
 });

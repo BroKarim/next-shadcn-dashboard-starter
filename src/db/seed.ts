@@ -44,7 +44,7 @@ if (!url) {
   process.exit(1);
 }
 
-const pg = postgres(url);
+const pg = postgres(url, { prepare: false });
 const db = drizzle(pg);
 
 const toFindingValues = (f: BpkFinding) => ({

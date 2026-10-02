@@ -11,7 +11,9 @@ if (!connectionString) {
   throw new Error('DATABASE_URL is not set');
 }
 
-// Direct local connection, no pooler (task_plan.md D3).
-const client = postgres(connectionString);
+// Supabase's transaction pooler does not support session-scoped prepared
+// statements. Disabling them keeps the same client compatible with both the
+// local database and a production pooler connection.
+const client = postgres(connectionString, { prepare: false });
 
 export const db = drizzle(client, { schema });
