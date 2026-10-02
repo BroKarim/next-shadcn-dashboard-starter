@@ -167,7 +167,7 @@ Aplikasi internal → role dipangkas menjadi **`user`** dan **`admin`** (`c18321
 
 - Font: 16 Google Fonts → Geist + Geist Mono; tema discord/light-green/astro-vista/zen dialihkan ke Geist.
 - Info sidebar (Infobar/InfoSidebar/InfoButton/infoconfig, 762 baris) dan command palette Cmd+K (beserta dependensi `kbar` dan `search-input`) dihapus.
-- Halaman demo `/dashboard/product` (+ `features/products`, `constants/mock-api.ts`, item nav & breadcrumb) dihapus. Halaman `/dashboard/users` (demo, mock) **dipertahankan** atas permintaan pemilik.
+- Halaman demo `/dashboard/product` (+ `features/products`, `constants/mock-api.ts`, item nav & breadcrumb) dihapus. Halaman `/dashboard/users` juga dihapus; pengelolaan akses tetap tersedia melalui `/dashboard/access`.
 - Delay buatan `800ms` di mock users dihapus; endpoint demo `/api/users` yang tidak terautentikasi dan tak terpakai dihapus; sisa temuan review (prop `isAdmin` mati, `useAppRole` mati, host gambar `slingacademy`, perbandingan author via email → `users.id`) dibersihkan; README/docs diselaraskan ke model dua-role.
 
 #### Verifikasi Phase 9
@@ -260,7 +260,7 @@ Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.
 - Impor hanya memetakan 6 kolom resmi; kolom internal tidak pernah ditimpa (disengaja). Preview sebelum commit **tidak** dibuat (D18 + `context.md` baris 19) — diganti ringkasan pasca-impor + diff di `activities`.
 - Perubahan role di halaman akses baru terlihat di sidebar setelah reload (role dibaca di server layout) — perilaku yang diterima (D37).
 - Belum di-merge: `feat/admin-actions` → `dev` → `main`, dan branch `feat/browser-verification-fixes`.
-- Halaman `/dashboard/users` kini terintegrasi dengan tabel PostgreSQL `users`, hanya tampil untuk admin, dan menyediakan aksi ubah role serta hapus user lokal.
+- Pengelolaan akses dan role tetap terintegrasi dengan tabel PostgreSQL `users` melalui `/dashboard/access`.
 - Warning `nuqs` (`limitUrlUpdates: debounce` + `shallow` default) di console — pre-existing, belum ditindak.
 - Compiler `removeConsole` hanya pada build produksi; satu `console.error` preflight impor sengaja dibiarkan.
 
@@ -818,7 +818,7 @@ Error: `src/lib/errors.ts` — server action menangkap error domain dan melempar
 
 `src/app/dashboard/overview/page.tsx` (server):
 
-1. Jadikan `async` dan terima `searchParams`; panggil `searchParamsCache.parse(searchParams)` (pola `users/page.tsx`).
+1. Jadikan `async` dan terima `searchParams`; panggil `searchParamsCache.parse(searchParams)`.
 2. Bangun `filters` dari cache, lalu `await Promise.all([ ... ])` untuk empat `prefetchQuery` (tabel dengan filter, metrik, tahunan, aktivitas) **sebelum** `dehydrate()`. Pola `void` dari `AGENTS.md` sengaja tidak dipakai di halaman ini: `dehydrate()` yang berjalan sebelum promise selesai bisa menghasilkan hydration state tanpa data (D32). `Suspense` tetap dipertahankan untuk perubahan filter dari sisi klien.
 3. Bungkus dengan `HydrationBoundary state={dehydrate(queryClient)}`, komposisi:
 
@@ -926,7 +926,7 @@ Aplikasi:
 14. RBAC: tanpa baris `users` → nav role `user`, `canManage = false`; email yang terdaftar di `INITIAL_ADMIN_EMAILS` → setelah satu kali load dashboard baris user muncul dengan role `admin` dan nav berubah (D36); `listFindings({ includeDeleted: true })` dengan role `user` → `ForbiddenError`.
 15. Tidak ada kebocoran kredensial: `grep -r "DATABASE_URL" .next/static` kosong; tidak ada `NEXT_PUBLIC_DATABASE_URL`; file `.env` tidak dibuat.
 16. Build tidak mengeksekusi query DB saat prerender; bila ada route yang mencoba, tandai route sebagai dinamis.
-17. Regresi: `/dashboard/users`, `/dashboard/product`, `/sign-in`, `/sign-up`, `/api/users` tetap normal.
+17. Regresi: `/dashboard/product`, `/dashboard/access`, `/sign-in`, `/sign-up`, `/api/findings` tetap normal.
 
 Catat hasil di `progress.md` (termasuk angka KPI sebelum/sesudah) dan update status Phase 7 di `task_plan.md`.
 

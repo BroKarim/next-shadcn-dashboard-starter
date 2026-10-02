@@ -96,13 +96,15 @@ export async function ensureCurrentUser() {
     throw new UnauthenticatedError('Identitas pengguna tidak lengkap.');
   }
 
-  const name = [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null;
+  const firstName = clerkUser.firstName?.trim() || null;
+  const lastName = clerkUser.lastName?.trim() || null;
+  const name = [firstName, lastName].filter(Boolean).join(' ') || null;
   const role = isInitialAdminEmail(email) ? 'admin' : 'user';
 
   // Insert-if-missing only; never overwrite the role of an existing row.
   await db
     .insert(users)
-    .values({ clerkUserId: userId, email, name, role })
+    .values({ clerkUserId: userId, email, firstName, lastName, name, role })
     .onConflictDoNothing({ target: users.clerkUserId });
 
   const [row] = await db.select().from(users).where(eq(users.clerkUserId, userId));

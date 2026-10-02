@@ -24,6 +24,8 @@ function toAppUser(row: typeof users.$inferSelect): AppUser {
     id: row.id,
     clerkUserId: row.clerkUserId,
     email: row.email,
+    firstName: row.firstName,
+    lastName: row.lastName,
     name: row.name,
     role: toAppRole(row.role),
     createdAt: row.createdAt.toISOString()

@@ -22,6 +22,8 @@ function toUserDTO(row: typeof users.$inferSelect) {
     id: row.id,
     clerkUserId: row.clerkUserId,
     email: row.email,
+    firstName: row.firstName,
+    lastName: row.lastName,
     name: row.name,
     role: toAppRole(row.role),
     createdAt: row.createdAt.toISOString(),
@@ -42,6 +44,8 @@ function normalizePagination(filters: UserFilters): {
 type UserSortColumn =
   | typeof users.email
   | typeof users.name
+  | typeof users.firstName
+  | typeof users.lastName
   | typeof users.role
   | typeof users.createdAt
   | typeof users.updatedAt;
@@ -58,6 +62,8 @@ function parseSort(sort: string | undefined): {
     const columns: Record<string, UserSortColumn> = {
       email: users.email,
       name: users.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
       role: users.role,
       createdAt: users.createdAt,
       updatedAt: users.updatedAt
@@ -77,7 +83,12 @@ export async function getUsers(filters: UserFilters): Promise<UsersResponse> {
 
   if (filters.search?.trim()) {
     const needle = `%${filters.search.trim()}%`;
-    const searchCondition = or(ilike(users.email, needle), ilike(users.name, needle));
+    const searchCondition = or(
+      ilike(users.email, needle),
+      ilike(users.name, needle),
+      ilike(users.firstName, needle),
+      ilike(users.lastName, needle)
+    );
     if (searchCondition) {
       conditions.push(searchCondition);
     }

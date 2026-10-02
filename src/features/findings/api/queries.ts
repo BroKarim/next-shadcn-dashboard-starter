@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 
+import { fetchFindings } from './client';
 import {
   getFindingsByYear,
   getFindingsValueByYear,
@@ -28,7 +29,7 @@ export const findingKeys = {
 export const findingsQueryOptions = (filters: FindingFilters) =>
   queryOptions({
     queryKey: findingKeys.list(filters),
-    queryFn: () => listFindings(filters)
+    queryFn: () => (typeof window === 'undefined' ? listFindings(filters) : fetchFindings(filters))
   });
 
 export const overviewMetricsQueryOptions = () =>

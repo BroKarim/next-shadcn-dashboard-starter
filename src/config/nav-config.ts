@@ -26,15 +26,6 @@ export const navGroups: NavGroup[] = [
         items: []
       },
       {
-        title: 'Users',
-        url: '/dashboard/users',
-        icon: 'teams',
-        shortcut: ['u', 'u'],
-        isActive: false,
-        items: [],
-        access: { role: 'admin' }
-      },
-      {
         title: 'Akses & Peran',
         url: '/dashboard/access',
         icon: 'account',

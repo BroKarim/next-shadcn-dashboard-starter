@@ -8,6 +8,8 @@ export interface AppUser {
   id: string;
   clerkUserId: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
   name: string | null;
   role: AppRole;
   createdAt: string;

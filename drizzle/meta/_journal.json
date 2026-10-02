@@ -36,6 +36,13 @@
       "when": 1790905627616,
       "tag": "0004_loving_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790908638277,
+      "tag": "0005_add_user_names",
+      "breakpoints": true
     }
   ]
 }

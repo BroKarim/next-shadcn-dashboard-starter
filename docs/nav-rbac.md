@@ -36,9 +36,9 @@ Roles live in the local `users` table of the PostgreSQL database — the databas
 ```typescript
 // src/config/nav-config.ts
 {
-  title: 'Users',
-  url: '/dashboard/users',
-  icon: 'teams',
+  title: 'Akses & Peran',
+  url: '/dashboard/access',
+  icon: 'account',
   access: { role: 'admin' } // minimum role
 }
 ```

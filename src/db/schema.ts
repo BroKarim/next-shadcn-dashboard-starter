@@ -36,6 +36,8 @@ export const users = pgTable(
       .default(sql`gen_random_uuid()`),
     clerkUserId: text('clerk_user_id').notNull(),
     email: text('email').notNull(),
+    firstName: text('first_name'),
+    lastName: text('last_name'),
     name: text('name'),
     role: text('role').notNull().default('user'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

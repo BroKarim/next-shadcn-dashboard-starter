@@ -29,7 +29,15 @@ NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/dashboard/overview"
 - The `*_FALLBACK_REDIRECT_URL` values send users back to the page they originally requested; swap to `*_FORCE_REDIRECT_URL` to always land on a fixed page.
 - `/dashboard` is protected in `src/app/dashboard/layout.tsx` with `await auth.protect()`.
 
-## 3. Application roles
+## 3. Signup name fields
+
+In the Clerk Dashboard, open User & authentication settings and enable First
+name and Last name for sign-up. Mark both fields as required. The prebuilt
+`<SignUp />` component renders those fields from the instance configuration;
+after signup, the application stores them in `users.first_name`,
+`users.last_name`, and the compatibility `users.name` display field.
+
+## 4. Application roles
 
 Roles are stored in the local `users.role` column and are the application's source of truth (D15); Clerk only provides identity. Admins change them on the `/dashboard/access` page.
 
@@ -46,7 +54,7 @@ Set it in the Clerk Dashboard under **Users → (user) → Metadata → Public**
 
 The client reads the role for navigation visibility (`src/hooks/use-nav.ts`); server actions must re-check it.
 
-## 4. Webhooks (optional)
+## 5. Webhooks (optional)
 
 Set `WEBHOOK_SECRET` in `.env.local` when you add a webhook endpoint (for example to mirror user changes into the app store). Create the endpoint in the Clerk Dashboard under **Configure → Webhooks**.
 
