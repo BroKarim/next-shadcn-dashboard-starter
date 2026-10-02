@@ -7,7 +7,7 @@ Scope decisions, domain rules, and the phased build plan live in:
 - [`context.md`](./context.md) — product context and agreed decisions
 - [`task_plan.md`](./task_plan.md) — phased plan and current status
 
-**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo, the Cmd+K command palette and the info sidebar have been removed; the multi-theme selector and the users demo remain. `/dashboard/overview` is the **Dashboard Temuan BPK** driven by PostgreSQL + Drizzle (KPI cards, findings-per-year chart, admin activity panel, six filters, paginated table, summary drawer); the finding detail route, XLSX import, attachments, comments and admin actions are implemented and documented in [`task_plan.md`](./task_plan.md) / [`docs/data.md`](./docs/data.md).
+**Current state:** the starter template has been simplified into a single-tenant base — Clerk auth with application roles, no Sentry/AI chat/kanban/messaging/notification center/Organizations/Billing. The product CRUD demo, the Cmd+K command palette, the info sidebar, and the users mock demo have been removed; the Users page now reads the local PostgreSQL user store and is admin-only. `/dashboard/overview` is the **Dashboard Temuan BPK** driven by PostgreSQL + Drizzle (KPI cards, findings-per-year chart, admin activity panel, six filters, paginated table, summary drawer); the finding detail route, XLSX import, attachments, comments and admin actions are implemented and documented in [`task_plan.md`](./task_plan.md) / [`docs/data.md`](./docs/data.md).
 
 ## Stack
 
@@ -35,7 +35,7 @@ Required env: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY`. Option
 ## Authentication and roles
 
 - `/dashboard` is protected with `await auth.protect()` in `src/app/dashboard/layout.tsx`.
-- Access levels are application roles stored in the local `users.role` column (the database is the source of truth): `user` (read everything + write comments) and `admin` (everything). Clerk only provides identity.
+- Access levels are application roles stored in the local `users.role` column (the database is the source of truth): `user` (read everything + write comments) and `admin` (user management, finding value updates, attachments, and comment replies). Clerk only provides identity.
 - Roles must be enforced in every server action / route handler. Client-side navigation filtering (`src/hooks/use-nav.ts`) is UX only — see [`docs/nav-rbac.md`](./docs/nav-rbac.md).
 
 ## Scripts

@@ -1,30 +1,26 @@
+'use client';
+
 import { mutationOptions } from '@tanstack/react-query';
+
+import { setUserRole } from '@/features/access/api/service';
 import { getQueryClient } from '@/lib/query-client';
-import { createUser, updateUser, deleteUser } from './service';
+import { deleteUser } from './service';
 import { userKeys } from './queries';
-import type { UserMutationPayload } from './types';
+import type { AppRole } from './types';
+import { accessKeys } from '@/features/access/api/queries';
 
-export const createUserMutation = mutationOptions({
-  mutationFn: (data: UserMutationPayload) => createUser(data),
-  // `onSettled`: call sites override onSuccess with their own toast.
-  onSettled: () => {
-    getQueryClient().invalidateQueries({ queryKey: userKeys.all });
-  }
-});
+const invalidateUserQueries = () => {
+  const queryClient = getQueryClient();
+  void queryClient.invalidateQueries({ queryKey: userKeys.all });
+  void queryClient.invalidateQueries({ queryKey: accessKeys.all });
+};
 
-export const updateUserMutation = mutationOptions({
-  mutationFn: ({ id, values }: { id: number; values: UserMutationPayload }) =>
-    updateUser(id, values),
-  // `onSettled`: call sites override onSuccess with their own toast.
-  onSettled: () => {
-    getQueryClient().invalidateQueries({ queryKey: userKeys.all });
-  }
+export const setUserRoleMutation = mutationOptions({
+  mutationFn: ({ userId, role }: { userId: string; role: AppRole }) => setUserRole(userId, role),
+  onSettled: invalidateUserQueries
 });
 
 export const deleteUserMutation = mutationOptions({
-  mutationFn: (id: number) => deleteUser(id),
-  // `onSettled`: call sites override onSuccess with their own toast.
-  onSettled: () => {
-    getQueryClient().invalidateQueries({ queryKey: userKeys.all });
-  }
+  mutationFn: (userId: string) => deleteUser(userId),
+  onSettled: invalidateUserQueries
 });

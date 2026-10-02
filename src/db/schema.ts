@@ -176,7 +176,7 @@ export const activities = pgTable(
     ),
     check(
       'activities_action_check',
-      sql`${t.action} in ('Impor XLSX', 'Tambah Temuan', 'Perbarui Temuan', 'Hapus Temuan', 'Pulihkan Temuan', 'Unggah Berkas', 'Perbarui Peran Pengguna')`
+      sql`${t.action} in ('Impor XLSX', 'Tambah Temuan', 'Perbarui Temuan', 'Hapus Temuan', 'Pulihkan Temuan', 'Unggah Berkas', 'Perbarui Peran Pengguna', 'Hapus Pengguna')`
     )
   ]
 );

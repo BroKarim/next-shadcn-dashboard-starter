@@ -30,12 +30,12 @@ export function BpkOverview({ appRole }: { appRole: AppRole }) {
   const isAdmin = appRole === 'admin';
 
   return (
-    <div className='flex flex-1 flex-col gap-4'>
+    <div className='flex min-w-0 flex-1 flex-col gap-4'>
       <React.Suspense fallback={<BpkKpiCardsSkeleton />}>
         <BpkKpiCards />
       </React.Suspense>
 
-      <div className='grid grid-cols-1 gap-4 lg:grid-cols-4'>
+      <div className='grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-4 [&>*]:min-w-0'>
         <React.Suspense fallback={<BpkYearChartSkeleton />}>
           <BpkYearChart />
         </React.Suspense>

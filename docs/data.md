@@ -57,6 +57,7 @@ src/features/findings/utils/  formatRupiah (string) dst.
 | `src/features/findings/api/import-core.ts` | Inti transaksi impor (`applyImport`) — dipisah supaya bisa diuji integrasi tanpa Clerk. Hanya 6 kolom resmi SILAHAP yang ditimpa; baris cocok selalu diperbarui `last_seen_in_import_at` + `last_import_batch_id`. |
 | `src/features/findings/api/mutations.ts` | `mutationOptions` sisi klien (invalidate `findingKeys.all`). |
 | `src/features/access/**` | Halaman **Akses & Peran** (`/dashboard/access`, admin-only) untuk mengubah role pengguna; perubahan dicatat sebagai `Perbarui Peran Pengguna`. |
+| `src/features/users/api/service.ts` | Daftar user PostgreSQL dengan search/filter/pagination, aksi hapus user lokal admin-only, dan audit `Hapus Pengguna`; akun aktif sendiri tidak dapat dihapus. |
 | `src/app/api/attachments/[id]/route.ts` | Route handler terautentikasi untuk pratinjau/unduh lampiran; `401` bila belum login, `404` bila baris/berkas tidak ada. |
 
 Penyimpanan berkas (di luar `public/`, isi di-ignore git):

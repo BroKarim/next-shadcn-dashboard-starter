@@ -480,7 +480,7 @@ export function BpkFindingsTable({ canEditValue }: { canEditValue: boolean }) {
   );
 
   return (
-    <Card>
+    <Card className='min-w-0'>
       <CardHeader>
         <CardTitle>Daftar Temuan</CardTitle>
         <CardDescription>Klik baris untuk melihat ringkasan temuan</CardDescription>

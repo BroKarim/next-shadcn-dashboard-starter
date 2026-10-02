@@ -1,31 +1,35 @@
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query';
+
 import { getQueryClient } from '@/lib/query-client';
 import { searchParamsCache } from '@/lib/searchparams';
 import { usersQueryOptions } from '../api/queries';
+import type { AppRole } from '../api/types';
 import { UsersTable } from './users-table';
 
-export default function UserListingPage() {
+interface UserListingPageProps {
+  currentUserId: string | null;
+}
+
+export default function UserListingPage({ currentUserId }: UserListingPageProps) {
   const page = searchParamsCache.get('page');
   const search = searchParamsCache.get('name');
   const pageLimit = searchParamsCache.get('perPage');
-  const roles = searchParamsCache.get('role');
+  const role = searchParamsCache.get('role');
   const sort = searchParamsCache.get('sort');
-
   const filters = {
     page,
-    limit: pageLimit,
+    perPage: pageLimit,
     ...(search && { search }),
-    ...(roles && { roles }),
+    ...(role === 'user' || role === 'admin' ? { role: role as AppRole } : {}),
     ...(sort && { sort })
   };
 
   const queryClient = getQueryClient();
-
   void queryClient.prefetchQuery(usersQueryOptions(filters));
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <UsersTable />
+      <UsersTable currentUserId={currentUserId} />
     </HydrationBoundary>
   );
 }

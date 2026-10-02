@@ -108,7 +108,8 @@ function toActivityAction(value: string): Activity['action'] {
     'Hapus Temuan',
     'Pulihkan Temuan',
     'Unggah Berkas',
-    'Perbarui Peran Pengguna'
+    'Perbarui Peran Pengguna',
+    'Hapus Pengguna'
   ];
   return allowed.includes(value) ? (value as Activity['action']) : 'Perbarui Temuan';
 }

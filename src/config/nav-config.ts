@@ -31,7 +31,8 @@ export const navGroups: NavGroup[] = [
         icon: 'teams',
         shortcut: ['u', 'u'],
         isActive: false,
-        items: []
+        items: [],
+        access: { role: 'admin' }
       },
       {
         title: 'Akses & Peran',

@@ -1,8 +1,11 @@
+import { auth } from '@clerk/nextjs/server';
+import { notFound, redirect } from 'next/navigation';
+
 import PageContainer from '@/components/layout/page-container';
+import { getCurrentUserId, getAppRoleWithBootstrap } from '@/lib/rbac';
 import UserListingPage from '@/features/users/components/user-listing';
 import { searchParamsCache } from '@/lib/searchparams';
 import type { SearchParams } from 'nuqs/server';
-import { UserFormSheetTrigger } from '@/features/users/components/user-form-sheet';
 
 export const metadata = {
   title: 'Dashboard: Users'
@@ -13,16 +16,26 @@ type PageProps = {
 };
 
 export default async function UsersPage(props: PageProps) {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? '/sign-in');
+  }
+
+  const appRole = await getAppRoleWithBootstrap();
+  if (appRole !== 'admin') {
+    notFound();
+  }
+
   const searchParams = await props.searchParams;
   searchParamsCache.parse(searchParams);
+  const currentUserId = await getCurrentUserId();
 
   return (
     <PageContainer
-      pageTitle='Users'
-      pageDescription='Manage users (React Query + nuqs table pattern.)'
-      pageHeaderAction={<UserFormSheetTrigger />}
+      pageTitle='Pengguna'
+      pageDescription='Kelola pengguna yang terdaftar di aplikasi dan role aksesnya.'
     >
-      <UserListingPage />
+      <UserListingPage currentUserId={currentUserId} />
     </PageContainer>
   );
 }

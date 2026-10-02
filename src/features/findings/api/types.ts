@@ -144,7 +144,8 @@ export type ActivityAction =
   | 'Hapus Temuan'
   | 'Pulihkan Temuan'
   | 'Unggah Berkas'
-  | 'Perbarui Peran Pengguna';
+  | 'Perbarui Peran Pengguna'
+  | 'Hapus Pengguna';
 
 export interface Activity {
   id: string;

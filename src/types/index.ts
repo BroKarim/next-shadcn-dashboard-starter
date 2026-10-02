@@ -2,7 +2,8 @@ import { Icons } from '@/components/icons';
 
 /**
  * Application role for this internal app: `user` may read everything and write
- * comments, `admin` may do everything (findings, imports, attachments, roles).
+ * comments; `admin` manages users, finding values, attachments, roles, and
+ * comment replies.
  */
 export type AppRole = 'user' | 'admin';
 

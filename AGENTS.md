@@ -52,7 +52,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 ### Authentication & Authorization
 
 - Clerk for authentication — single tenant (one institution), no Clerk Organizations or Billing
-- Application roles: `user` (read everything + write comments) and `admin` (everything) — stored in the local `users` table (`users.role`); the database is the source of truth, Clerk only provides identity
+- Application roles: `user` (read everything + write comments) and `admin` (manage users, update `nilaiTemuan`, manage attachments, and reply to comments) — stored in the local `users` table (`users.role`); the database is the source of truth, Clerk only provides identity
 - Roles must be enforced server-side (server action / route handler); client-side nav filtering is UX only — see `docs/nav-rbac.md`
 
 ### Data & APIs
@@ -62,7 +62,7 @@ It grew out of the Next.js shadcn dashboard starter; the template demo features 
 - Recharts for analytics/charts
 - Service layer per feature (`api/types.ts` → `api/service.ts` → `api/queries.ts`)
 - Route handlers at `src/app/api/` (for Route Handler or BFF patterns)
-- Mock data in `src/constants/mock-api.ts` (product demo) and `src/constants/mock-api-users.ts` (temporary user store — replace with the real source); never import them from components
+- User data is sourced from the local PostgreSQL `users` table through `src/features/users/api/service.ts`; do not add mock user stores or import mock API data from components
 - API client utility in `src/lib/api-client.ts` (for fetch-based patterns)
 
 ### Development Tools

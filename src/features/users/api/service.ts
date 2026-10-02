@@ -1,47 +1,139 @@
-// ============================================================
-// User Service — Data Access Layer
-// ============================================================
-// This is the ONLY file you modify when connecting to your backend.
-// Queries (queries.ts) and components import from here — they never change.
-//
-// Pick your pattern and replace the function bodies below:
-//
-// 1. Server Actions + ORM (Prisma / Drizzle / Supabase)
-//    → Add 'use server' at the top of this file
-//    → Call your ORM directly in each function
-//
-// 2. Route Handlers + ORM
-//    → import { apiClient } from '@/lib/api-client'
-//    → return apiClient<UsersResponse>('/users?...')
-//    → Replace the mock calls below with the real user store / ORM
-//
-// 3. BFF — Route Handlers proxy to external backend (Laravel, Go, etc.)
-//    → import { apiClient } from '@/lib/api-client'
-//    → return apiClient<UsersResponse>('/users?...')
-//    → Route handlers proxy requests to your external backend service
-//
-// 4. Direct external API (frontend-only, no Next.js backend)
-//    → const res = await fetch('https://your-api.com/users?...')
-//    → return res.json()
-//
-// Current: Mock (in-memory fake data for demo/prototyping)
-// ============================================================
+'use server';
 
-import { fakeUsers } from '@/constants/mock-api-users';
-import type { UserFilters, UsersResponse, UserMutationPayload } from './types';
+import { and, asc, count, desc, eq, ilike, or, type SQL } from 'drizzle-orm';
+
+import { activities, users } from '@/db/schema';
+import { db } from '@/db/client';
+import { NotFoundError, ValidationError } from '@/lib/errors';
+import { requireActorIdentity, requireRole } from '@/lib/rbac';
+import type { AppRole } from '@/types';
+import type { UserFilters, UsersResponse } from './types';
+
+const MAX_PER_PAGE = 100;
+const USER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function toAppRole(value: string): AppRole {
+  return value === 'admin' ? 'admin' : 'user';
+}
+
+function toUserDTO(row: typeof users.$inferSelect) {
+  return {
+    id: row.id,
+    clerkUserId: row.clerkUserId,
+    email: row.email,
+    name: row.name,
+    role: toAppRole(row.role),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString()
+  };
+}
+
+function normalizePagination(filters: UserFilters): {
+  page: number;
+  perPage: number;
+  offset: number;
+} {
+  const page = Math.max(1, filters.page ?? 1);
+  const perPage = Math.min(Math.max(1, filters.perPage ?? 10), MAX_PER_PAGE);
+  return { page, perPage, offset: (page - 1) * perPage };
+}
+
+type UserSortColumn =
+  | typeof users.email
+  | typeof users.name
+  | typeof users.role
+  | typeof users.createdAt
+  | typeof users.updatedAt;
+
+function parseSort(sort: string | undefined): {
+  column: UserSortColumn;
+  descending: boolean;
+} {
+  const fallback = { column: users.email, descending: false };
+  if (!sort) return fallback;
+
+  try {
+    const [item] = JSON.parse(sort) as { id?: string; desc?: boolean }[];
+    const columns: Record<string, UserSortColumn> = {
+      email: users.email,
+      name: users.name,
+      role: users.role,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt
+    };
+    const column = item?.id ? columns[item.id] : undefined;
+    return column ? { column, descending: item?.desc === true } : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export async function getUsers(filters: UserFilters): Promise<UsersResponse> {
-  return fakeUsers.getUsers(filters);
+  await requireRole('admin');
+
+  const { page, perPage, offset } = normalizePagination(filters);
+  const conditions: SQL[] = [];
+
+  if (filters.search?.trim()) {
+    const needle = `%${filters.search.trim()}%`;
+    const searchCondition = or(ilike(users.email, needle), ilike(users.name, needle));
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
+  }
+  if (filters.role) {
+    conditions.push(eq(users.role, filters.role));
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const [{ total }] = await db.select({ total: count() }).from(users).where(where);
+  const order = parseSort(filters.sort);
+  const rows = await db
+    .select()
+    .from(users)
+    .where(where)
+    .orderBy(order.descending ? desc(order.column) : asc(order.column))
+    .limit(perPage)
+    .offset(offset);
+
+  return {
+    items: rows.map(toUserDTO),
+    total: Number(total),
+    page,
+    perPage,
+    pageCount: Math.max(1, Math.ceil(Number(total) / perPage))
+  };
 }
 
-export async function createUser(data: UserMutationPayload) {
-  return fakeUsers.createUser(data);
-}
+/** Delete only the local application row; Clerk identity is managed separately. */
+export async function deleteUser(userId: string): Promise<{ deleted: boolean }> {
+  await requireRole('admin');
+  const actor = await requireActorIdentity();
 
-export async function updateUser(id: number, data: UserMutationPayload) {
-  return fakeUsers.updateUser(id, data);
-}
+  if (!USER_ID_PATTERN.test(userId)) {
+    throw new ValidationError('ID pengguna tidak valid.');
+  }
+  if (actor.id === userId) {
+    throw new ValidationError('Tidak bisa menghapus akun admin yang sedang digunakan.');
+  }
 
-export async function deleteUser(id: number) {
-  return fakeUsers.deleteUser(id);
+  return db.transaction(async (tx) => {
+    const [target] = await tx.select().from(users).where(eq(users.id, userId));
+    if (!target) {
+      throw new NotFoundError('Pengguna tidak ditemukan.');
+    }
+
+    await tx.insert(activities).values({
+      entityType: 'user',
+      entityId: target.id,
+      action: 'Hapus Pengguna',
+      metadata: { email: target.email },
+      actorUserId: actor.id,
+      actorEmail: actor.email
+    });
+
+    await tx.delete(users).where(eq(users.id, target.id));
+    return { deleted: true };
+  });
 }

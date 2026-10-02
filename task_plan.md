@@ -260,7 +260,7 @@ Pendukung: `bunfig.toml` (`[test] preload`) + `src/test-setup.ts` (memuat `.env.
 - Impor hanya memetakan 6 kolom resmi; kolom internal tidak pernah ditimpa (disengaja). Preview sebelum commit **tidak** dibuat (D18 + `context.md` baris 19) — diganti ringkasan pasca-impor + diff di `activities`.
 - Perubahan role di halaman akses baru terlihat di sidebar setelah reload (role dibaca di server layout) — perilaku yang diterima (D37).
 - Belum di-merge: `feat/admin-actions` → `dev` → `main`, dan branch `feat/browser-verification-fixes`.
-- Halaman `/dashboard/users` masih memakai data mock (`constants/mock-api-users.ts`), dipertahankan sebagai demo atas permintaan pemilik.
+- Halaman `/dashboard/users` kini terintegrasi dengan tabel PostgreSQL `users`, hanya tampil untuk admin, dan menyediakan aksi ubah role serta hapus user lokal.
 - Warning `nuqs` (`limitUrlUpdates: debounce` + `shallow` default) di console — pre-existing, belum ditindak.
 - Compiler `removeConsole` hanya pada build produksi; satu `console.error` preflight impor sengaja dibiarkan.
 

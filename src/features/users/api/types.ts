@@ -1,28 +1,29 @@
-export type { User } from '@/constants/mock-api-users';
+import type { AppRole } from '@/types';
 
-export type UserFilters = {
-  page?: number;
-  limit?: number;
-  roles?: string;
-  search?: string;
-  sort?: string;
-};
+export type { AppRole };
 
-export type UsersResponse = {
-  success: boolean;
-  time: string;
-  message: string;
-  total_users: number;
-  offset: number;
-  limit: number;
-  users: import('@/constants/mock-api-users').User[];
-};
-
-export type UserMutationPayload = {
-  first_name: string;
-  last_name: string;
+export interface User {
+  id: string;
+  clerkUserId: string;
   email: string;
-  phone: string;
-  role: string;
-  status: string;
-};
+  name: string | null;
+  role: AppRole;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserFilters {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  role?: AppRole;
+  sort?: string;
+}
+
+export interface UsersResponse {
+  items: User[];
+  total: number;
+  page: number;
+  perPage: number;
+  pageCount: number;
+}
