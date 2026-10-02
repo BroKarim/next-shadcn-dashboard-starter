@@ -18,6 +18,7 @@ import {
   type FindingStatus
 } from '@/features/findings/api/types';
 import { BpkOverview } from '@/features/overview/components/bpk-overview';
+import { ImportFindingsButton } from '@/features/findings/components/import-findings-button';
 import type { SearchParams } from 'nuqs/server';
 
 export const metadata = {
@@ -69,6 +70,7 @@ export default async function OverviewPage(props: PageProps) {
     <PageContainer
       pageTitle='Dashboard Temuan BPK'
       pageDescription='Ringkasan tindak lanjut hasil pemeriksaan'
+      pageHeaderAction={isAdmin ? <ImportFindingsButton /> : undefined}
     >
       <HydrationBoundary state={dehydrate(queryClient)}>
         <BpkOverview appRole={appRole} />

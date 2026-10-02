@@ -7,6 +7,7 @@ import {
   createComment,
   deleteAttachment,
   deleteComment,
+  importFindings,
   replyToComment,
   updateFindingValue,
   uploadAttachment
@@ -30,6 +31,11 @@ const invalidateFindings = () => {
 export const updateFindingValueMutation = mutationOptions({
   mutationFn: ({ kodeDisplay, nilaiTemuan }: { kodeDisplay: string; nilaiTemuan: number }) =>
     updateFindingValue(kodeDisplay, nilaiTemuan),
+  onSettled: invalidateFindings
+});
+
+export const importFindingsMutation = mutationOptions({
+  mutationFn: (formData: FormData) => importFindings(formData),
   onSettled: invalidateFindings
 });
 
